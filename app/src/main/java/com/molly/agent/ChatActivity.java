@@ -67,6 +67,32 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
     private List<MollyApiClient.ModelItem> availableModels = new ArrayList<>();
     private List<MollyApiClient.AgentItem> availableAgents = new ArrayList<>();
 
+    private boolean isSessionExpiredHandled = false;
+    private final Handler heartbeatHandler = new Handler(Looper.getMainLooper());
+    private static final long HEARTBEAT_INTERVAL_MS = 7000;
+
+    private final Runnable heartbeatRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (isFinishing() || isSessionExpiredHandled) return;
+            apiClient.verifySession(new MollyApiClient.ApiCallback<Boolean>() {
+                @Override
+                public void onSuccess(Boolean result) {
+                    if (!isFinishing() && !isSessionExpiredHandled) {
+                        heartbeatHandler.postDelayed(heartbeatRunnable, HEARTBEAT_INTERVAL_MS);
+                    }
+                }
+
+                @Override
+                public void onError(String error) {
+                    if (!isFinishing() && !isSessionExpiredHandled) {
+                        heartbeatHandler.postDelayed(heartbeatRunnable, HEARTBEAT_INTERVAL_MS);
+                    }
+                }
+            });
+        }
+    };
+
     private final Handler pollHandler = new Handler(Looper.getMainLooper());
     private boolean isPolling = false;
     private int pollCount = 0;
@@ -92,6 +118,10 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
 
         apiClient = new MollyApiClient(this);
         sessionManager = new SessionHistoryManager(this);
+
+        apiClient.setSessionExpirationListener(reason -> {
+            handleSessionExpired(reason);
+        });
 
         if (!apiClient.isConfigured()) {
             Toast.makeText(this, "Sesi belum terhubung. Silakan scan QR code terlebih dahulu.", Toast.LENGTH_SHORT).show();
@@ -479,6 +509,7 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
     protected void onDestroy() {
         super.onDestroy();
         stopPolling();
+        stopSessionHeartbeat();
     }
 
     private void handleToolApprovalDecision(ChatDisplayItem item, boolean approve) {
@@ -613,5 +644,47 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
                 })
                 .setNegativeButton("Batal", null)
                 .show();
+    }
+
+    private void handleSessionExpired(String reason) {
+        if (isSessionExpiredHandled || isFinishing()) return;
+        isSessionExpiredHandled = true;
+
+        stopPolling();
+        stopSessionHeartbeat();
+
+        new AlertDialog.Builder(this)
+                .setTitle("Koneksi Diputuskan")
+                .setMessage("Sesi login Anda di Molly Web telah berakhir atau Anda telah logout. Demi keamanan, sesi chat di aplikasi Android otomatis diputuskan.")
+                .setCancelable(false)
+                .setPositiveButton("OK", (dialog, which) -> {
+                    finish();
+                })
+                .show();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (!apiClient.isConfigured()) {
+            handleSessionExpired("Sesi tidak terkonfigurasi");
+            return;
+        }
+        startSessionHeartbeat();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        stopSessionHeartbeat();
+    }
+
+    private void startSessionHeartbeat() {
+        heartbeatHandler.removeCallbacks(heartbeatRunnable);
+        heartbeatHandler.postDelayed(heartbeatRunnable, HEARTBEAT_INTERVAL_MS);
+    }
+
+    private void stopSessionHeartbeat() {
+        heartbeatHandler.removeCallbacks(heartbeatRunnable);
     }
 }

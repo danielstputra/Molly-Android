@@ -67,6 +67,11 @@ public class MainActivity extends AppCompatActivity {
             });
         }
 
+        apiClient.setSessionExpirationListener(reason -> {
+            updateUiStatus();
+            Toast.makeText(this, "Sesi login di Molly Web telah berakhir atau logout. Sambungan otomatis diputuskan.", Toast.LENGTH_LONG).show();
+        });
+
         updateUiStatus();
     }
 
@@ -74,7 +79,21 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         apiClient.loadConfig();
-        updateUiStatus();
+        if (apiClient.isConfigured()) {
+            apiClient.verifySession(new MollyApiClient.ApiCallback<Boolean>() {
+                @Override
+                public void onSuccess(Boolean result) {
+                    updateUiStatus();
+                }
+
+                @Override
+                public void onError(String error) {
+                    updateUiStatus();
+                }
+            });
+        } else {
+            updateUiStatus();
+        }
     }
 
     private void updateUiStatus() {

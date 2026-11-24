@@ -101,11 +101,40 @@ public class MollyApiClient {
         void onError(String error);
     }
 
+    public interface SessionExpirationListener {
+        void onSessionExpired(String reason);
+    }
+
+    private SessionExpirationListener sessionExpirationListener;
+
+    public void setSessionExpirationListener(SessionExpirationListener listener) {
+        this.sessionExpirationListener = listener;
+    }
+
+    public synchronized void notifySessionExpired(String reason) {
+        if (!isConfigured()) return;
+        disconnect();
+        if (sessionExpirationListener != null) {
+            mainHandler.post(() -> sessionExpirationListener.onSessionExpired(reason));
+        }
+    }
+
     public MollyApiClient(Context context) {
         this.prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
         this.client = new OkHttpClient.Builder()
                 .connectTimeout(15, TimeUnit.SECONDS)
                 .readTimeout(60, TimeUnit.SECONDS)
+                .addInterceptor(chain -> {
+                    Request request = chain.request();
+                    Response response = chain.proceed(request);
+                    if (response.code() == 401 || response.code() == 403) {
+                        String path = request.url().encodedPath();
+                        if (!path.contains("/download-apk") && !path.contains("/mobile-pairing-info")) {
+                            notifySessionExpired("Sesi login di Molly Web telah berakhir atau logout.");
+                        }
+                    }
+                    return response;
+                })
                 .build();
         this.gson = new Gson();
         this.mainHandler = new Handler(Looper.getMainLooper());
@@ -184,6 +213,89 @@ public class MollyApiClient {
                 .remove("agent_id")
                 .remove("agent_name")
                 .apply();
+    }
+
+    /**
+     * Memverifikasi validitas sesi/token autentikasi saat ini dengan server Molly.
+     * Jika sesi sudah logout di web atau token kedaluwarsa, interceptor otomatis memicu pemutusan sesi.
+     */
+    public void verifySession(ApiCallback<Boolean> callback) {
+        if (!isConfigured()) {
+            if (callback != null) callback.onError("Belum terhubung");
+            return;
+        }
+
+        String endpoint = serverUrl + "/api/system/mobile/verify-session";
+        Request request = new Request.Builder()
+                .url(endpoint)
+                .addHeader("Authorization", "Bearer " + token)
+                .addHeader("Bypass-Tunnel-Reminder", "true")
+                .get()
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                if (callback != null) {
+                    mainHandler.post(() -> callback.onError("Koneksi gagal: " + e.getMessage()));
+                }
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                if (response.isSuccessful()) {
+                    if (callback != null) {
+                        mainHandler.post(() -> callback.onSuccess(true));
+                    }
+                } else if (response.code() == 404) {
+                    verifySessionFallback(callback);
+                } else if (response.code() == 401 || response.code() == 403) {
+                    if (callback != null) {
+                        mainHandler.post(() -> callback.onError("Sesi telah berakhir (" + response.code() + ")"));
+                    }
+                } else {
+                    if (callback != null) {
+                        mainHandler.post(() -> callback.onError("Status: " + response.code()));
+                    }
+                }
+            }
+        });
+    }
+
+    private void verifySessionFallback(ApiCallback<Boolean> callback) {
+        String endpoint = serverUrl + "/api/v1/agents/sessions?limit=1";
+        Request request = new Request.Builder()
+                .url(endpoint)
+                .addHeader("Authorization", "Bearer " + token)
+                .addHeader("Bypass-Tunnel-Reminder", "true")
+                .get()
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                if (callback != null) {
+                    mainHandler.post(() -> callback.onError("Koneksi gagal: " + e.getMessage()));
+                }
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) {
+                if (response.isSuccessful()) {
+                    if (callback != null) {
+                        mainHandler.post(() -> callback.onSuccess(true));
+                    }
+                } else if (response.code() == 401 || response.code() == 403) {
+                    if (callback != null) {
+                        mainHandler.post(() -> callback.onError("Sesi telah berakhir (" + response.code() + ")"));
+                    }
+                } else {
+                    if (callback != null) {
+                        mainHandler.post(() -> callback.onError("Status: " + response.code()));
+                    }
+                }
+            }
+        });
     }
 
     public String getServerUrl() {
