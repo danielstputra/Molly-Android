@@ -200,6 +200,14 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
             loadDrawerSessions();
         });
 
+        View btnDrawerAbout = findViewById(R.id.btnDrawerAbout);
+        if (btnDrawerAbout != null) {
+            btnDrawerAbout.setOnClickListener(v -> {
+                drawerLayout.closeDrawers();
+                com.molly.agent.ui.AboutAppDialogHelper.show(this);
+            });
+        }
+
         updateActionPillsUi();
 
         // Catat sesi awal di history

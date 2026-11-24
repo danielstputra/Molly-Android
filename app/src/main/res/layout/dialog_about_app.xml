@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_tool_call_card"
+    android:backgroundTint="@color/card_dark"
+    android:orientation="vertical"
+    android:padding="22dp">
+
+    <!-- App Logo & Title -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="vertical">
+
+        <ImageView
+            android:layout_width="54dp"
+            android:layout_height="54dp"
+            android:contentDescription="Molly Logo"
+            android:src="@drawable/ic_molly_logo" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="Molly Agent"
+            android:textColor="@color/text_white"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="Mobile Companion Client • v1.0.2"
+            android:textColor="@color/primary_gold"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginVertical="14dp"
+        android:background="@color/border_dark" />
+
+    <!-- Developer Section -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:background="@drawable/bg_action_pill"
+        android:backgroundTint="#24272D"
+        android:orientation="vertical"
+        android:padding="12dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="👨‍💻 Pengembang / Developer"
+            android:textColor="@color/primary_gold"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Daniel S.T. Putra"
+            android:textColor="@color/text_white"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="1dp"
+            android:text="GitHub: @danielstputra"
+            android:textColor="@color/text_muted"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <!-- Description -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:lineSpacingExtra="3dp"
+        android:text="Aplikasi pendamping cerdas resmi untuk Molly AI Agent Platform. Menghubungkan perangkat ponsel cerdas Anda ke workspace Molly secara real-time dengan dukungan visualisasi eksekusi tool machine, interactive approval, multi-session drawer, auto-healing engine, dan auto-disconnect security."
+        android:textColor="@color/text_muted"
+        android:textSize="12sp" />
+
+    <!-- Tech & License Specs -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="• Ekosistem: Molly AI Agent Platform"
+            android:textColor="@color/text_muted"
+            android:textSize="11sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="• Lisensi: Open Source (MIT / Molly AI Contributors)"
+            android:textColor="@color/text_muted"
+            android:textSize="11sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="• Konektivitas: Local LAN (Port 5050) &amp; Cloudflare Tunnel"
+            android:textColor="@color/text_muted"
+            android:textSize="11sp" />
+    </LinearLayout>
+
+    <!-- Buttons -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnAboutGitHub"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_marginEnd="6dp"
+            android:layout_weight="1"
+            android:text="GitHub"
+            android:textColor="@color/primary_gold"
+            android:textSize="13sp"
+            app:cornerRadius="22dp"
+            app:strokeColor="@color/primary_gold" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnAboutClose"
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_marginStart="6dp"
+            android:layout_weight="1"
+            android:text="Tutup"
+            android:textColor="#121417"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            app:backgroundTint="@color/primary_gold"
+            app:cornerRadius="22dp" />
+    </LinearLayout>
+</LinearLayout>

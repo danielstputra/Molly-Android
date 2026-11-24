@@ -55,6 +55,7 @@ public class MainActivity extends AppCompatActivity {
         btnScanQr = findViewById(R.id.btnScanQr);
         btnManualConnect = findViewById(R.id.btnManualConnect);
         TextView btnViewIntroAgain = findViewById(R.id.btnViewIntroAgain);
+        View btnAboutApp = findViewById(R.id.btnAboutApp);
 
         btnScanQr.setOnClickListener(v -> startQrScan());
         btnManualConnect.setOnClickListener(v -> showManualConnectDialog());
@@ -65,6 +66,9 @@ public class MainActivity extends AppCompatActivity {
                 Intent introIntent = new Intent(this, com.molly.agent.intro.IntroActivity.class);
                 startActivity(introIntent);
             });
+        }
+        if (btnAboutApp != null) {
+            btnAboutApp.setOnClickListener(v -> com.molly.agent.ui.AboutAppDialogHelper.show(this));
         }
 
         apiClient.setSessionExpirationListener(reason -> {

@@ -160,11 +160,23 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
-        android:layout_marginBottom="18dp"
+        android:layout_marginBottom="4dp"
         android:background="?selectableItemBackgroundBorderless"
-        android:padding="8dp"
+        android:padding="6dp"
         android:text="✨ Pelajari Apa itu Molly Agent"
         android:textColor="@color/primary_gold"
         android:textSize="13sp" />
+
+    <TextView
+        android:id="@+id/btnAboutApp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="16dp"
+        android:background="?selectableItemBackgroundBorderless"
+        android:padding="6dp"
+        android:text="ℹ️ Tentang Aplikasi &amp; Developer"
+        android:textColor="@color/text_muted"
+        android:textSize="12sp" />
 
 </LinearLayout>
