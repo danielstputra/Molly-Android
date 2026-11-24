@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">Molly Agent</string>
+    <string name="welcome_title">Molly AI Agent</string>
+    <string name="welcome_subtitle">Pindai QR Code di Molly Web atau masukkan koneksi manual untuk sinkronisasi chat realtime.</string>
+    <string name="scan_qr_code">Scan QR Code Molly Web</string>
+    <string name="manual_connect">Koneksi Manual / Tempel Kode</string>
+    <string name="enter_pairing_json">Tempel JSON pairing atau masukkan URL server:</string>
+    <string name="connect">Hubungkan</string>
+    <string name="cancel">Batal</string>
+    <string name="status_connected">Terhubung ke Web</string>
+    <string name="status_disconnected">Terputus</string>
+    <string name="type_message_hint">Kirim prompt ke Molly...</string>
+    <string name="agent_thinking">Molly sedang berpikir...</string>
+    <string name="session_paired_success">Berhasil terhubung ke sesi Molly!</string>
+</resources>

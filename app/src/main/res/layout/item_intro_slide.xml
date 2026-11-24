@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:paddingHorizontal="32dp">
+
+    <ImageView
+        android:id="@+id/ivIntroIllustration"
+        android:layout_width="140dp"
+        android:layout_height="140dp"
+        android:contentDescription="Ilustrasi Fitur"
+        android:src="@drawable/ic_intro_agent" />
+
+    <TextView
+        android:id="@+id/tvIntroTagline"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="28dp"
+        android:background="@drawable/bg_action_pill"
+        android:backgroundTint="#26F3BA32"
+        android:paddingHorizontal="14dp"
+        android:paddingVertical="4dp"
+        android:text="Agen Cerdas Otonom"
+        android:textColor="@color/primary_gold"
+        android:textSize="12sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/tvIntroTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:gravity="center"
+        android:text="Mengenal Molly Agent"
+        android:textColor="@color/text_white"
+        android:textSize="22sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/tvIntroDescription"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:gravity="center"
+        android:lineSpacingExtra="5dp"
+        android:text="Molly adalah platform kecerdasan buatan otonom untuk otomatisasi alur kerja, analisis mendalam, dan eksekusi tugas enterprise."
+        android:textColor="@color/text_muted"
+        android:textSize="14sp" />
+
+</LinearLayout>

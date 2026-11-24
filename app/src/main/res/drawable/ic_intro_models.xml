@@ -1,0 +1,34 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+    <!-- Background Circle Soft -->
+    <path
+        android:fillColor="#1A3B82F6"
+        android:pathData="M60,60m-54,0a54,54 0,1 1,108 0a54,54 0,1 1,-108 0" />
+    <path
+        android:strokeColor="#333B82F6"
+        android:strokeWidth="2"
+        android:pathData="M60,60m-54,0a54,54 0,1 1,108 0a54,54 0,1 1,-108 0" />
+
+    <!-- CPU Chip Base -->
+    <path
+        android:fillColor="#1D2024"
+        android:strokeColor="#F3BA32"
+        android:strokeWidth="2.5"
+        android:pathData="M38,38 L82,38 C85.3,38 88,40.7 88,44 L88,76 C88,79.3 85.3,82 82,82 L38,82 C34.7,82 32,79.3 32,76 L32,44 C32,40.7 34.7,38 38,38 Z" />
+
+    <!-- Chip Pins -->
+    <path
+        android:fillColor="#F3BA32"
+        android:pathData="M44,30 L48,30 L48,38 L44,38 Z M58,30 L62,30 L62,38 L58,38 Z M72,30 L76,30 L76,38 L72,38 Z M44,82 L48,82 L48,90 L44,90 Z M58,82 L62,82 L62,90 L58,90 Z M72,82 L76,82 L76,90 L72,90 Z M24,46 L32,46 L32,50 L24,50 Z M24,58 L32,58 L32,62 L24,62 Z M24,70 L32,70 L32,74 L24,74 Z M88,46 L96,46 L96,50 L88,50 Z M88,58 L96,58 L96,62 L88,62 Z M88,70 L96,70 L96,74 L88,74 Z" />
+
+    <!-- Core Neural Core Inside -->
+    <path
+        android:fillColor="#F3BA32"
+        android:pathData="M50,50 L70,50 L70,70 L50,70 Z" />
+    <path
+        android:fillColor="#121417"
+        android:pathData="M56,54 L64,54 L60,66 Z" />
+</vector>

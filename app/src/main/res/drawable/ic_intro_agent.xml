@@ -1,0 +1,29 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+    <!-- Background Circle Soft -->
+    <path
+        android:fillColor="#1AF3BA32"
+        android:pathData="M60,60m-54,0a54,54 0,1 1,108 0a54,54 0,1 1,-108 0" />
+    <path
+        android:strokeColor="#33F3BA32"
+        android:strokeWidth="2"
+        android:pathData="M60,60m-54,0a54,54 0,1 1,108 0a54,54 0,1 1,-108 0" />
+
+    <!-- Center AI Brain / Crown Core -->
+    <path
+        android:fillColor="#F3BA32"
+        android:pathData="M35,45 L48,75 L60,50 L72,75 L85,45 L85,78 C85,82 82,85 78,85 L42,85 C38,85 35,82 35,78 Z" />
+    <!-- Glowing Node Dots -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M60,32m-5,0a5,5 0,1 1,10 0a5,5 0,1 1,-10 0" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M35,42m-4,0a4,4 0,1 1,8 0a4,4 0,1 1,-8 0" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M85,42m-4,0a4,4 0,1 1,8 0a4,4 0,1 1,-8 0" />
+</vector>

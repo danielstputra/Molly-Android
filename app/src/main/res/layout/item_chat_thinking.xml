@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="6dp"
+    android:layout_marginVertical="4dp"
+    android:background="@drawable/bg_tool_call_card"
+    android:backgroundTint="#16181C"
+    android:orientation="vertical"
+    android:padding="10dp">
+
+    <!-- Thinking Header -->
+    <LinearLayout
+        android:id="@+id/llThinkingHeader"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🧠"
+            android:textSize="14sp" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:text="Proses Berpikir (Reasoning)"
+            android:textColor="@color/text_muted"
+            android:textSize="12sp"
+            android:textStyle="italic" />
+
+        <ImageView
+            android:id="@+id/ivThinkingChevron"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:contentDescription="Expand"
+            android:src="@drawable/ic_chevron_down" />
+    </LinearLayout>
+
+    <!-- Thinking Body Text -->
+    <TextView
+        android:id="@+id/tvThinkingContent"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/bg_code_block"
+        android:fontFamily="sans-serif"
+        android:lineSpacingExtra="3dp"
+        android:padding="8dp"
+        android:text="Menganalisis permintaan pengguna..."
+        android:textColor="#B0B4BA"
+        android:textIsSelectable="true"
+        android:textSize="12sp"
+        android:visibility="gone" />
+
+</LinearLayout>

@@ -1,0 +1,28 @@
+buildscript {
+    repositories {
+        maven { 
+            url 'http://127.0.0.1:8899/google'
+            allowInsecureProtocol = true
+        }
+        maven { 
+            url 'http://127.0.0.1:8899/central'
+            allowInsecureProtocol = true
+        }
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.4.1'
+    }
+}
+
+allprojects {
+    repositories {
+        maven { 
+            url 'http://127.0.0.1:8899/google'
+            allowInsecureProtocol = true
+        }
+        maven { 
+            url 'http://127.0.0.1:8899/central'
+            allowInsecureProtocol = true
+        }
+    }
+}

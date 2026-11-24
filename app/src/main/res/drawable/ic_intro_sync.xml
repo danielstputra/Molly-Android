@@ -1,0 +1,40 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+    <!-- Background Circle Soft -->
+    <path
+        android:fillColor="#1A10B981"
+        android:pathData="M60,60m-54,0a54,54 0,1 1,108 0a54,54 0,1 1,-108 0" />
+    <path
+        android:strokeColor="#3310B981"
+        android:strokeWidth="2"
+        android:pathData="M60,60m-54,0a54,54 0,1 1,108 0a54,54 0,1 1,-108 0" />
+
+    <!-- Monitor / Web Frame -->
+    <path
+        android:fillColor="#F3BA32"
+        android:pathData="M30,32 L78,32 C81,32 83,34 83,37 L83,62 C83,65 81,67 78,67 L30,67 C27,67 25,65 25,62 L25,37 C25,34 27,32 30,32 Z M50,67 L50,75 L42,75 L42,79 L66,79 L66,75 L58,75 L58,67 Z" />
+    <!-- Monitor Screen Content -->
+    <path
+        android:fillColor="#121417"
+        android:pathData="M29,36 L79,36 L79,61 L29,61 Z" />
+    <path
+        android:fillColor="#10B981"
+        android:pathData="M34,42 L52,42 L52,45 L34,45 Z M34,49 L68,49 L68,52 L34,52 Z M34,56 L46,56 L46,58 L34,58 Z" />
+
+    <!-- Phone / Mobile Device in Foreground -->
+    <path
+        android:fillColor="#1D2024"
+        android:strokeColor="#F3BA32"
+        android:strokeWidth="2.5"
+        android:pathData="M70,52 L92,52 C94.2,52 96,53.8 96,56 L96,88 C96,90.2 94.2,92 92,92 L70,92 C67.8,92 66,90.2 66,88 L66,56 C66,53.8 67.8,52 70,52 Z" />
+    <!-- Phone Screen Content / QR Scan indicator -->
+    <path
+        android:fillColor="#10B981"
+        android:pathData="M72,60 L90,60 L90,82 L72,82 Z" />
+    <path
+        android:fillColor="#121417"
+        android:pathData="M75,63 L80,63 L80,68 L75,68 Z M82,63 L87,63 L87,68 L82,68 Z M75,74 L80,74 L80,79 L75,79 Z M83,75 L86,75 L86,78 L83,78 Z" />
+</vector>
