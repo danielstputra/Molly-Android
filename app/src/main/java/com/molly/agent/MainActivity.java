@@ -120,7 +120,7 @@ public class MainActivity extends AppCompatActivity {
         try {
             String serverUrl = "";
             String token = "molly-guest-session";
-            String sessionId = java.util.UUID.randomUUID().toString();
+            String sessionId = "";
             String agentId = "";
             String agentName = "Molly Agent";
 

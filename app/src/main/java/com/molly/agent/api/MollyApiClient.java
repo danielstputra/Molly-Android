@@ -122,16 +122,16 @@ public class MollyApiClient {
         this.selectedModelName = prefs.getString("selected_model_name", "gemini-4-hydrogen-medium");
         this.selectedApprovalMode = prefs.getString("selected_approval_mode", "full_trust");
 
-        if (this.sessionId.isEmpty()) {
-            this.sessionId = UUID.randomUUID().toString();
-            prefs.edit().putString("session_id", this.sessionId).apply();
+        // Jika sessionId kosong, biarkan kosong agar auto-create session berjalan saat kirim pesan pertama
+        if (this.sessionId == null) {
+            this.sessionId = "";
         }
     }
 
     public void savePairingData(String url, String token, String sessionId, String agentId, String agentName) {
         this.serverUrl = url.endsWith("/") ? url.substring(0, url.length() - 1) : url;
         this.token = (token != null && !token.isEmpty()) ? token : "molly-guest-session";
-        this.sessionId = (sessionId != null && !sessionId.isEmpty()) ? sessionId : UUID.randomUUID().toString();
+        this.sessionId = (sessionId != null) ? sessionId.trim() : "";
         this.agentId = (agentId != null && !agentId.isEmpty()) ? agentId : "default-chatbot";
         this.agentName = (agentName != null && !agentName.isEmpty()) ? agentName : "Asisten Cerdas";
 

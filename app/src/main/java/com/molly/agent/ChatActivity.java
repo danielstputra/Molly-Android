@@ -356,8 +356,30 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
 
     private void showAgentPickerDialog() {
         if (availableAgents.isEmpty()) {
-            Toast.makeText(this, "Memuat agen dari server...", Toast.LENGTH_SHORT).show();
-            loadMetadata();
+            android.app.ProgressDialog progress = new android.app.ProgressDialog(this);
+            progress.setMessage("Memuat daftar Agent dari server Molly...");
+            progress.setCancelable(true);
+            progress.show();
+
+            apiClient.fetchMetadata(new MollyApiClient.ApiCallback<MollyApiClient.MetadataResponse>() {
+                @Override
+                public void onSuccess(MollyApiClient.MetadataResponse result) {
+                    progress.dismiss();
+                    if (result.models != null && !result.models.isEmpty()) availableModels = result.models;
+                    if (result.agents != null && !result.agents.isEmpty()) availableAgents = result.agents;
+                    if (!availableAgents.isEmpty()) {
+                        showAgentPickerDialog();
+                    } else {
+                        Toast.makeText(ChatActivity.this, "Tidak ada agent yang tersedia di server", Toast.LENGTH_SHORT).show();
+                    }
+                }
+
+                @Override
+                public void onError(String error) {
+                    progress.dismiss();
+                    Toast.makeText(ChatActivity.this, "Gagal memuat agent: " + error, Toast.LENGTH_SHORT).show();
+                }
+            });
             return;
         }
 
@@ -385,8 +407,30 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
 
     private void showModelPickerDialog() {
         if (availableModels.isEmpty()) {
-            Toast.makeText(this, "Memuat model dari server...", Toast.LENGTH_SHORT).show();
-            loadMetadata();
+            android.app.ProgressDialog progress = new android.app.ProgressDialog(this);
+            progress.setMessage("Memuat daftar Model AI dari server Molly...");
+            progress.setCancelable(true);
+            progress.show();
+
+            apiClient.fetchMetadata(new MollyApiClient.ApiCallback<MollyApiClient.MetadataResponse>() {
+                @Override
+                public void onSuccess(MollyApiClient.MetadataResponse result) {
+                    progress.dismiss();
+                    if (result.models != null && !result.models.isEmpty()) availableModels = result.models;
+                    if (result.agents != null && !result.agents.isEmpty()) availableAgents = result.agents;
+                    if (!availableModels.isEmpty()) {
+                        showModelPickerDialog();
+                    } else {
+                        Toast.makeText(ChatActivity.this, "Tidak ada model yang tersedia di server", Toast.LENGTH_SHORT).show();
+                    }
+                }
+
+                @Override
+                public void onError(String error) {
+                    progress.dismiss();
+                    Toast.makeText(ChatActivity.this, "Gagal memuat model: " + error, Toast.LENGTH_SHORT).show();
+                }
+            });
             return;
         }
 
