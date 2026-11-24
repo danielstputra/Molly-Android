@@ -200,6 +200,14 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
             loadDrawerSessions();
         });
 
+        View btnDrawerServerConfig = findViewById(R.id.btnDrawerServerConfig);
+        if (btnDrawerServerConfig != null) {
+            btnDrawerServerConfig.setOnClickListener(v -> {
+                drawerLayout.closeDrawers();
+                showServerConfigDialog();
+            });
+        }
+
         View btnDrawerAbout = findViewById(R.id.btnDrawerAbout);
         if (btnDrawerAbout != null) {
             btnDrawerAbout.setOnClickListener(v -> {
@@ -365,7 +373,7 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
         btnSelectAgent.setText("+ " + apiClient.getAgentName() + " ⌵");
 
         String approvalText = "kepercayaan penuh ⌵";
-        if ("manual".equalsIgnoreCase(apiClient.getSelectedApprovalMode())) {
+        if ("default".equalsIgnoreCase(apiClient.getSelectedApprovalMode()) || "manual".equalsIgnoreCase(apiClient.getSelectedApprovalMode())) {
             approvalText = "persetujuan manual ⌵";
         }
         btnSelectApproval.setText(approvalText);
@@ -415,7 +423,7 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
                 @Override
                 public void onError(String error) {
                     progress.dismiss();
-                    Toast.makeText(ChatActivity.this, "Gagal memuat agent: " + error, Toast.LENGTH_SHORT).show();
+                    handleNetworkTimeoutError(error, "agent");
                 }
             });
             return;
@@ -466,7 +474,7 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
                 @Override
                 public void onError(String error) {
                     progress.dismiss();
-                    Toast.makeText(ChatActivity.this, "Gagal memuat model: " + error, Toast.LENGTH_SHORT).show();
+                    handleNetworkTimeoutError(error, "model");
                 }
             });
             return;
@@ -496,18 +504,95 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
 
     private void showApprovalModeDialog() {
         String[] modes = new String[]{"kepercayaan penuh (Otomatis)", "persetujuan manual"};
-        int selectedIndex = "manual".equalsIgnoreCase(apiClient.getSelectedApprovalMode()) ? 1 : 0;
+        int selectedIndex = ("default".equalsIgnoreCase(apiClient.getSelectedApprovalMode()) || "manual".equalsIgnoreCase(apiClient.getSelectedApprovalMode())) ? 1 : 0;
 
         new AlertDialog.Builder(this)
                 .setTitle("Mode Persetujuan Tool")
                 .setSingleChoiceItems(modes, selectedIndex, (dialog, which) -> {
                     if (which == 0) {
-                        apiClient.setSelectedApprovalMode("full_trust");
+                        apiClient.setSelectedApprovalMode("always_trust");
                     } else {
-                        apiClient.setSelectedApprovalMode("manual");
+                        apiClient.setSelectedApprovalMode("default");
                     }
                     updateActionPillsUi();
                     dialog.dismiss();
+                })
+                .setNegativeButton("Batal", null)
+                .show();
+    }
+
+    private void handleNetworkTimeoutError(String error, String featureName) {
+        String serverUrl = apiClient.getServerUrl();
+        boolean isLocalIp = serverUrl.contains("10.") || serverUrl.contains("192.168.") || serverUrl.contains("172.") || serverUrl.contains("127.0.0.1") || serverUrl.contains("localhost");
+
+        if (error != null && (error.toLowerCase().contains("timeout") || error.toLowerCase().contains("failed to connect") || error.toLowerCase().contains("unreachable")) && isLocalIp) {
+            String tunnelCandidate = apiClient.getTunnelUrl();
+            StringBuilder msg = new StringBuilder();
+            msg.append("Aplikasi gagal menghubungi server di IP LAN lokal:\n")
+               .append(serverUrl).append("\n\n")
+               .append("Jika ponsel Anda menggunakan data seluler (4G/5G) atau Wi-Fi luar, IP lokal tidak dapat dijangkau dan menyebabkan timeout.\n\n");
+
+            if (!tunnelCandidate.isEmpty()) {
+                msg.append("Tersedia URL Tunnel publik dari pairing terakhir:\n")
+                   .append(tunnelCandidate).append("\n\n")
+                   .append("Apakah Anda ingin mengganti ke URL Tunnel atau mengubah URL Server?");
+            } else {
+                msg.append("Silakan ubah URL server ke URL publik/Tunnel Cloudflare backend Anda.");
+            }
+
+            new AlertDialog.Builder(this)
+                    .setTitle("⚠️ Koneksi Timeout (IP Lokal LAN)")
+                    .setMessage(msg.toString())
+                    .setPositiveButton("Konfigurasi URL", (dialog, which) -> {
+                        showServerConfigDialog();
+                    })
+                    .setNegativeButton("Tutup", null)
+                    .show();
+        } else {
+            Toast.makeText(this, "Gagal memuat " + featureName + ": " + error, Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void showServerConfigDialog() {
+        android.widget.LinearLayout container = new android.widget.LinearLayout(this);
+        container.setOrientation(android.widget.LinearLayout.VERTICAL);
+        int pad = (int) (18 * getResources().getDisplayMetrics().density);
+        container.setPadding(pad, pad / 2, pad, 0);
+
+        android.widget.TextView tvHint = new android.widget.TextView(this);
+        tvHint.setText("Masukkan URL server backend Molly (IP lokal atau Cloudflare Tunnel publik):");
+        tvHint.setTextColor(getColor(R.color.text_muted));
+        tvHint.setTextSize(13);
+        container.addView(tvHint);
+
+        final android.widget.EditText input = new android.widget.EditText(this);
+        input.setHint("https://... atau http://192.168.x.x:5050");
+        input.setText(apiClient.getServerUrl());
+        input.setSingleLine(true);
+        container.addView(input);
+
+        String tunnelCandidate = apiClient.getTunnelUrl();
+        if (!tunnelCandidate.isEmpty() && !tunnelCandidate.equalsIgnoreCase(apiClient.getServerUrl())) {
+            android.widget.TextView tvQuickTunnel = new android.widget.TextView(this);
+            tvQuickTunnel.setText("🔗 Klik untuk isi URL Tunnel tersimpan:\n" + tunnelCandidate);
+            tvQuickTunnel.setTextColor(getColor(R.color.primary_gold));
+            tvQuickTunnel.setTextSize(12);
+            tvQuickTunnel.setPadding(0, 16, 0, 0);
+            tvQuickTunnel.setOnClickListener(v -> input.setText(tunnelCandidate));
+            container.addView(tvQuickTunnel);
+        }
+
+        new AlertDialog.Builder(this)
+                .setTitle("🌐 Konfigurasi URL Server")
+                .setView(container)
+                .setPositiveButton("Simpan & Hubungkan", (d, w) -> {
+                    String newUrl = input.getText().toString().trim();
+                    if (!newUrl.isEmpty()) {
+                        apiClient.updateServerUrl(newUrl);
+                        Toast.makeText(this, "URL Server diperbarui. Memuat ulang data...", Toast.LENGTH_SHORT).show();
+                        loadMetadata();
+                        syncServerSessions();
+                    }
                 })
                 .setNegativeButton("Batal", null)
                 .show();

@@ -44,13 +44,14 @@ public class MollyApiClient {
     private final Handler mainHandler;
 
     private String serverUrl = "";
+    private String tunnelUrl = "";
     private String token = "";
     private String sessionId = "";
     private String agentId = "default-chatbot";
     private String agentName = "Asisten Cerdas";
     private String selectedModelId = "ag-tools:gemini-4-hydrogen-medium";
     private String selectedModelName = "gemini-4-hydrogen-medium";
-    private String selectedApprovalMode = "full_trust";
+    private String selectedApprovalMode = "always_trust";
 
     public static class ModelItem {
         public String id;
@@ -143,13 +144,14 @@ public class MollyApiClient {
 
     public void loadConfig() {
         this.serverUrl = prefs.getString("server_url", "");
+        this.tunnelUrl = prefs.getString("tunnel_url", "");
         this.token = prefs.getString("token", "molly-guest-session");
         this.sessionId = prefs.getString("session_id", "");
         this.agentId = prefs.getString("agent_id", "default-chatbot");
         this.agentName = prefs.getString("agent_name", "Asisten Cerdas");
         this.selectedModelId = prefs.getString("selected_model_id", "ag-tools:gemini-4-hydrogen-medium");
         this.selectedModelName = prefs.getString("selected_model_name", "gemini-4-hydrogen-medium");
-        this.selectedApprovalMode = prefs.getString("selected_approval_mode", "full_trust");
+        this.selectedApprovalMode = prefs.getString("selected_approval_mode", "always_trust");
 
         // Jika sessionId kosong, biarkan kosong agar auto-create session berjalan saat kirim pesan pertama
         if (this.sessionId == null) {
@@ -157,8 +159,12 @@ public class MollyApiClient {
         }
     }
 
-    public void savePairingData(String url, String token, String sessionId, String agentId, String agentName) {
-        this.serverUrl = url.endsWith("/") ? url.substring(0, url.length() - 1) : url;
+    public void savePairingData(String url, String tunnelUrl, String token, String sessionId, String agentId, String agentName) {
+        this.serverUrl = (url != null) ? (url.endsWith("/") ? url.substring(0, url.length() - 1) : url) : "";
+        if (tunnelUrl != null && !tunnelUrl.trim().isEmpty()) {
+            String t = tunnelUrl.trim();
+            this.tunnelUrl = t.endsWith("/") ? t.substring(0, t.length() - 1) : t;
+        }
         this.token = (token != null && !token.isEmpty()) ? token : "molly-guest-session";
         this.sessionId = (sessionId != null) ? sessionId.trim() : "";
         this.agentId = (agentId != null && !agentId.isEmpty()) ? agentId : "default-chatbot";
@@ -166,11 +172,16 @@ public class MollyApiClient {
 
         prefs.edit()
                 .putString("server_url", this.serverUrl)
+                .putString("tunnel_url", this.tunnelUrl)
                 .putString("token", this.token)
                 .putString("session_id", this.sessionId)
                 .putString("agent_id", this.agentId)
                 .putString("agent_name", this.agentName)
                 .apply();
+    }
+
+    public void savePairingData(String url, String token, String sessionId, String agentId, String agentName) {
+        savePairingData(url, "", token, sessionId, agentId, agentName);
     }
 
     public void setSelectedModel(String modelId, String modelName) {
@@ -202,17 +213,44 @@ public class MollyApiClient {
 
     public void disconnect() {
         this.serverUrl = "";
+        this.tunnelUrl = "";
         this.token = "molly-guest-session";
         this.sessionId = "";
         this.agentId = "default-chatbot";
         this.agentName = "Asisten Cerdas";
         prefs.edit()
                 .remove("server_url")
+                .remove("tunnel_url")
                 .remove("token")
                 .remove("session_id")
                 .remove("agent_id")
                 .remove("agent_name")
                 .apply();
+    }
+
+    public void updateServerUrl(String newUrl) {
+        if (newUrl != null && !newUrl.trim().isEmpty()) {
+            String trimmed = newUrl.trim();
+            this.serverUrl = trimmed.endsWith("/") ? trimmed.substring(0, trimmed.length() - 1) : trimmed;
+            SharedPreferences.Editor editor = prefs.edit().putString("server_url", this.serverUrl);
+            if (this.serverUrl.startsWith("https://") && (this.serverUrl.contains(".trycloudflare.com") || this.serverUrl.contains(".loca.lt") || this.serverUrl.contains(".ngrok"))) {
+                this.tunnelUrl = this.serverUrl;
+                editor.putString("tunnel_url", this.tunnelUrl);
+            }
+            editor.apply();
+        }
+    }
+
+    public String getTunnelUrl() {
+        return tunnelUrl != null ? tunnelUrl : "";
+    }
+
+    public void setTunnelUrl(String url) {
+        if (url != null) {
+            String trimmed = url.trim();
+            this.tunnelUrl = trimmed.endsWith("/") ? trimmed.substring(0, trimmed.length() - 1) : trimmed;
+            prefs.edit().putString("tunnel_url", this.tunnelUrl).apply();
+        }
     }
 
     /**
@@ -385,6 +423,24 @@ public class MollyApiClient {
         });
     }
 
+    public String getNormalizedApprovalMode() {
+        if ("full_trust".equalsIgnoreCase(selectedApprovalMode) || "always_trust".equalsIgnoreCase(selectedApprovalMode)) {
+            return "always_trust";
+        }
+        return "default";
+    }
+
+    public String getNormalizedModelId() {
+        if (selectedModelId == null || selectedModelId.trim().isEmpty()) {
+            return "ag-tools:gemini-4-hydrogen-medium";
+        }
+        String trimmed = selectedModelId.trim();
+        if (!trimmed.contains(":") && !trimmed.contains("/")) {
+            return "ag-tools:" + trimmed;
+        }
+        return trimmed;
+    }
+
     /**
      * Kirim prompt dari Android ke server Molly.
      * Dilengkapi mekanisme Auto-Healing: Jika sesi belum ada di database atau server merespons 404 ("Benang tidak ada"),
@@ -397,7 +453,7 @@ public class MollyApiClient {
             return;
         }
 
-        if (sessionId == null || sessionId.trim().isEmpty()) {
+        if (sessionId == null || sessionId.trim().isEmpty() || sessionId.equals("molly-guest-session") || sessionId.startsWith("local-") || sessionId.startsWith("draft-")) {
             createSessionAndSendPrompt(promptText, callback);
             return;
         }
@@ -411,7 +467,7 @@ public class MollyApiClient {
             @Override
             public void onError(String error) {
                 // Auto-healing: Jika 404 (Thread/Benang tidak ditemukan di DB), buat sesi baru secara otomatis
-                if (error.contains("404") || error.contains("Benang") || error.contains("not found")) {
+                if (error != null && (error.contains("404") || error.contains("Benang") || error.toLowerCase().contains("not found"))) {
                     createSessionAndSendPrompt(promptText, callback);
                 } else {
                     callback.onError(error);
@@ -450,12 +506,8 @@ public class MollyApiClient {
 
         JsonObject molly = new JsonObject();
         molly.addProperty("mode", "follow_up");
-        if (selectedModelId != null && !selectedModelId.isEmpty()) {
-            molly.addProperty("model", selectedModelId);
-        }
-        if (selectedApprovalMode != null && !selectedApprovalMode.isEmpty()) {
-            molly.addProperty("tool_approval_mode", selectedApprovalMode);
-        }
+        molly.addProperty("model", getNormalizedModelId());
+        molly.addProperty("tool_approval_mode", getNormalizedApprovalMode());
         event.add("molly", molly);
 
         events.add(event);
@@ -500,14 +552,12 @@ public class MollyApiClient {
         root.addProperty("agent_id", (agentId != null && !agentId.isEmpty()) ? agentId : "default-chatbot");
         String titleSnippet = promptText.length() > 30 ? promptText.substring(0, 30) + "..." : promptText;
         root.addProperty("title", titleSnippet);
-        if (selectedApprovalMode != null && !selectedApprovalMode.isEmpty()) {
-            root.addProperty("tool_approval_mode", selectedApprovalMode);
-        }
-        if (selectedModelId != null && !selectedModelId.isEmpty()) {
-            JsonObject agentObj = new JsonObject();
-            agentObj.addProperty("model", selectedModelId);
-            root.add("agent", agentObj);
-        }
+        root.addProperty("tool_approval_mode", getNormalizedApprovalMode());
+
+        JsonObject agentObj = new JsonObject();
+        agentObj.addProperty("model", getNormalizedModelId());
+        root.add("agent", agentObj);
+
         root.addProperty("input", promptText);
 
         RequestBody body = RequestBody.create(root.toString(), JSON);

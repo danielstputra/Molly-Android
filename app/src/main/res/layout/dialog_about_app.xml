@@ -67,7 +67,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            android:text="Daniel S.T. Putra"
+            android:text="Daniels Trysyahputra"
             android:textColor="@color/text_white"
             android:textSize="15sp"
             android:textStyle="bold" />

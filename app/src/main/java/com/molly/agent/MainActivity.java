@@ -148,10 +148,12 @@ public class MainActivity extends AppCompatActivity {
             String agentName = "Molly Agent";
 
             String trimmed = rawPayload.trim();
+            String tunnelUrl = "";
 
             if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
                 JsonObject obj = JsonParser.parseString(trimmed).getAsJsonObject();
                 if (obj.has("server_url")) serverUrl = obj.get("server_url").getAsString().trim();
+                if (obj.has("tunnel_url")) tunnelUrl = obj.get("tunnel_url").getAsString().trim();
                 if (obj.has("token") && !obj.get("token").getAsString().trim().isEmpty()) {
                     token = obj.get("token").getAsString().trim();
                 }
@@ -178,7 +180,7 @@ public class MainActivity extends AppCompatActivity {
                 return;
             }
 
-            apiClient.savePairingData(serverUrl, token, sessionId, agentId, agentName);
+            apiClient.savePairingData(serverUrl, tunnelUrl, token, sessionId, agentId, agentName);
             Toast.makeText(this, "Berhasil terhubung ke Molly!", Toast.LENGTH_SHORT).show();
             updateUiStatus();
             openChatActivity();

@@ -1,6 +1,6 @@
 # Molly Android Project License
 
-Copyright (c) 2026 Daniel S.T. Putra and Molly AI Project Contributors.
+Copyright (c) 2026 Daniels Trysyahputra and Molly AI Project Contributors.
 
 This software and associated documentation files are provided for use, modification, and distribution in connection with the Molly AI Agent Platform under standard open collaboration terms.
 
