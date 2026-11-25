@@ -105,6 +105,10 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         TextView tvAgentMessage;
         TextView tvAgentTimestamp;
 
+        ImageView btnThumbUp;
+        ImageView btnThumbDown;
+        ImageView btnCopyMessage;
+
         public MessageViewHolder(@NonNull View itemView) {
             super(itemView);
             llUserContainer = itemView.findViewById(R.id.llUserContainer);
@@ -114,9 +118,14 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             llAgentContainer = itemView.findViewById(R.id.llAgentContainer);
             tvAgentMessage = itemView.findViewById(R.id.tvAgentMessage);
             tvAgentTimestamp = itemView.findViewById(R.id.tvAgentTimestamp);
+
+            btnThumbUp = itemView.findViewById(R.id.btnThumbUp);
+            btnThumbDown = itemView.findViewById(R.id.btnThumbDown);
+            btnCopyMessage = itemView.findViewById(R.id.btnCopyMessage);
         }
 
         public void bind(ChatDisplayItem item) {
+            Context ctx = itemView.getContext();
             boolean isUser = (item.getItemType() == ChatDisplayItem.TYPE_USER);
 
             if (isUser) {
@@ -128,7 +137,68 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                 llUserContainer.setVisibility(View.GONE);
                 llAgentContainer.setVisibility(View.VISIBLE);
                 tvAgentMessage.setText(item.getText());
-                tvAgentTimestamp.setText(item.getTimestamp());
+
+                String time = item.getTimestamp() != null && !item.getTimestamp().isEmpty() ? item.getTimestamp() : "12:00";
+                tvAgentTimestamp.setText(time);
+
+                // Update warna status feedback (Like / Dislike)
+                updateFeedbackUi(item.getFeedback());
+
+                // Klik Thumbs Up
+                if (btnThumbUp != null) {
+                    btnThumbUp.setOnClickListener(v -> {
+                        if (item.getFeedback() == 1) {
+                            item.setFeedback(0);
+                        } else {
+                            item.setFeedback(1);
+                            android.widget.Toast.makeText(ctx, "Terima kasih atas tanggapan Anda!", android.widget.Toast.LENGTH_SHORT).show();
+                        }
+                        updateFeedbackUi(item.getFeedback());
+                    });
+                }
+
+                // Klik Thumbs Down
+                if (btnThumbDown != null) {
+                    btnThumbDown.setOnClickListener(v -> {
+                        if (item.getFeedback() == -1) {
+                            item.setFeedback(0);
+                        } else {
+                            item.setFeedback(-1);
+                            android.widget.Toast.makeText(ctx, "Tanggapan dicatat untuk peningkatan sistem.", android.widget.Toast.LENGTH_SHORT).show();
+                        }
+                        updateFeedbackUi(item.getFeedback());
+                    });
+                }
+
+                // Klik Copy / Salin
+                if (btnCopyMessage != null) {
+                    btnCopyMessage.setOnClickListener(v -> {
+                        String textToCopy = item.getText() != null ? item.getText() : "";
+                        android.content.ClipboardManager clipboard = (android.content.ClipboardManager) ctx.getSystemService(Context.CLIPBOARD_SERVICE);
+                        android.content.ClipData clip = android.content.ClipData.newPlainText("Molly Agent Response", textToCopy);
+                        if (clipboard != null) {
+                            clipboard.setPrimaryClip(clip);
+                            android.widget.Toast.makeText(ctx, "Pesan berhasil disalin ke papan klip", android.widget.Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                }
+            }
+        }
+
+        private void updateFeedbackUi(int feedback) {
+            if (btnThumbUp != null) {
+                if (feedback == 1) {
+                    btnThumbUp.setImageTintList(ColorStateList.valueOf(0xFF10B981)); // Green active
+                } else {
+                    btnThumbUp.setImageTintList(ColorStateList.valueOf(0xFF9CA3AF)); // Gray default
+                }
+            }
+            if (btnThumbDown != null) {
+                if (feedback == -1) {
+                    btnThumbDown.setImageTintList(ColorStateList.valueOf(0xFFEF4444)); // Red active
+                } else {
+                    btnThumbDown.setImageTintList(ColorStateList.valueOf(0xFF9CA3AF)); // Gray default
+                }
             }
         }
     }

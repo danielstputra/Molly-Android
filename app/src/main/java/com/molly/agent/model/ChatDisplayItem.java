@@ -101,6 +101,7 @@ public class ChatDisplayItem {
     private String turnId;
     private String waitpointId;
     private boolean isExpanded;
+    private int feedback = 0; // 0 = none, 1 = thumbs up, -1 = thumbs down
 
     // Sub-tools untuk Grouping Tool Call (Gambar 3)
     private final List<SubToolCall> subTools = new ArrayList<>();
@@ -242,5 +243,13 @@ public class ChatDisplayItem {
 
     public void setExpanded(boolean expanded) {
         isExpanded = expanded;
+    }
+
+    public int getFeedback() {
+        return feedback;
+    }
+
+    public void setFeedback(int feedback) {
+        this.feedback = feedback;
     }
 }

@@ -64,29 +64,85 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginEnd="48dp"
-            android:background="@drawable/bg_agent_bubble"
-            android:orientation="vertical"
-            android:paddingHorizontal="14dp"
-            android:paddingVertical="10dp">
+            android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/tvAgentMessage"
+            <!-- Bubble Agent -->
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:lineSpacingExtra="3dp"
-                android:text="Agent response..."
-                android:textColor="@color/text_white"
-                android:textSize="14sp" />
+                android:background="@drawable/bg_agent_bubble"
+                android:orientation="vertical"
+                android:paddingHorizontal="14dp"
+                android:paddingVertical="10dp">
 
-            <TextView
-                android:id="@+id/tvAgentTimestamp"
+                <TextView
+                    android:id="@+id/tvAgentMessage"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:lineSpacingExtra="3dp"
+                    android:text="Agent response..."
+                    android:textColor="@color/text_white"
+                    android:textIsSelectable="true"
+                    android:textSize="14sp" />
+            </LinearLayout>
+
+            <!-- Agent Action Bar (Like, Dislike, Copy, Timestamp) Sesuai Gambar -->
+            <LinearLayout
+                android:id="@+id/llAgentActions"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_gravity="start"
-                android:layout_marginTop="2dp"
-                android:text="12:00"
-                android:textColor="@color/text_muted"
-                android:textSize="10sp" />
+                android:layout_marginTop="4dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <!-- Thumbs Up -->
+                <ImageView
+                    android:id="@+id/btnThumbUp"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:background="@drawable/bg_chat_action_btn"
+                    android:clickable="true"
+                    android:contentDescription="Suka"
+                    android:focusable="true"
+                    android:padding="6dp"
+                    android:src="@drawable/ic_thumb_up" />
+
+                <!-- Thumbs Down -->
+                <ImageView
+                    android:id="@+id/btnThumbDown"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:layout_marginStart="4dp"
+                    android:background="@drawable/bg_chat_action_btn"
+                    android:clickable="true"
+                    android:contentDescription="Tidak Suka"
+                    android:focusable="true"
+                    android:padding="6dp"
+                    android:src="@drawable/ic_thumb_down" />
+
+                <!-- Copy -->
+                <ImageView
+                    android:id="@+id/btnCopyMessage"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/bg_chat_action_btn"
+                    android:clickable="true"
+                    android:contentDescription="Salin Pesan"
+                    android:focusable="true"
+                    android:padding="6dp"
+                    android:src="@drawable/ic_copy" />
+
+                <!-- Timestamp -->
+                <TextView
+                    android:id="@+id/tvAgentTimestamp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:text="09:21"
+                    android:textColor="#94A3B8"
+                    android:textSize="11sp" />
+            </LinearLayout>
         </LinearLayout>
     </LinearLayout>
 
