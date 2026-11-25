@@ -103,29 +103,20 @@ public class ContextUsageDialogHelper {
             tvCallCount.setText(info.modelCallCount + " calls");
 
             tvInputOutput.setText(ContextUsageInfo.formatToken(info.modelInputTokens) + " / " + ContextUsageInfo.formatToken(info.modelOutputTokens));
-            tvCacheStats.setText(ContextUsageInfo.formatToken(info.modelCacheTokens) + " · " + info.cacheHitRatio + "%");
+            int cacheRatio = info.modelCacheHitRatio >= 0 ? info.modelCacheHitRatio : info.cacheHitRatio;
+            tvCacheStats.setText(ContextUsageInfo.formatToken(info.modelCacheTokens) + " · " + cacheRatio + "%");
             tvReasoningStats.setText(ContextUsageInfo.formatToken(info.modelReasoningTokens));
 
-            // Weight calculation for stacked bar
-            long sTok = Math.max(1, info.systemTokens);
-            long tTok = Math.max(1, info.toolsTokens);
-            long cTok = Math.max(1, info.contentTokens);
-            long mTok = Math.max(1, info.toolMsgTokens);
+            // Weight calculation for stacked bar - hanya tampilkan segmen yang memiliki token > 0
+            long sTok = info.systemTokens;
+            long tTok = info.toolsTokens;
+            long cTok = info.contentTokens;
+            long mTok = info.toolMsgTokens;
 
-            LinearLayout.LayoutParams lpSys = (LinearLayout.LayoutParams) segSystem.getLayoutParams();
-            LinearLayout.LayoutParams lpTools = (LinearLayout.LayoutParams) segTools.getLayoutParams();
-            LinearLayout.LayoutParams lpCont = (LinearLayout.LayoutParams) segContent.getLayoutParams();
-            LinearLayout.LayoutParams lpMsg = (LinearLayout.LayoutParams) segToolMsg.getLayoutParams();
-
-            lpSys.weight = sTok;
-            lpTools.weight = tTok;
-            lpCont.weight = cTok;
-            lpMsg.weight = mTok;
-
-            segSystem.setLayoutParams(lpSys);
-            segTools.setLayoutParams(lpTools);
-            segContent.setLayoutParams(lpCont);
-            segToolMsg.setLayoutParams(lpMsg);
+            updateSegmentBar(segSystem, sTok);
+            updateSegmentBar(segTools, tTok);
+            updateSegmentBar(segContent, cTok);
+            updateSegmentBar(segToolMsg, mTok);
 
             tvSystemTokens.setText(ContextUsageInfo.formatToken(info.systemTokens));
             tvToolsCountLabel.setText("Definisi alat (" + info.toolsCount + ")");
@@ -207,6 +198,21 @@ public class ContextUsageDialogHelper {
         }
     }
 
+    private static void updateSegmentBar(View segView, long tokens) {
+        if (segView == null) return;
+        if (tokens > 0) {
+            segView.setVisibility(View.VISIBLE);
+            LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) segView.getLayoutParams();
+            lp.weight = tokens;
+            segView.setLayoutParams(lp);
+        } else {
+            segView.setVisibility(View.GONE);
+            LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) segView.getLayoutParams();
+            lp.weight = 0;
+            segView.setLayoutParams(lp);
+        }
+    }
+
     private static void copyInto(ContextUsageInfo src, ContextUsageInfo target) {
         if (src == null || target == null) return;
         target.percent = src.percent;
@@ -219,6 +225,7 @@ public class ContextUsageDialogHelper {
         target.modelInputTokens = src.modelInputTokens;
         target.modelOutputTokens = src.modelOutputTokens;
         target.modelCacheTokens = src.modelCacheTokens;
+        target.modelCacheHitRatio = src.modelCacheHitRatio;
         target.modelReasoningTokens = src.modelReasoningTokens;
         target.systemTokens = src.systemTokens;
         target.toolsTokens = src.toolsTokens;
@@ -227,6 +234,8 @@ public class ContextUsageDialogHelper {
         target.contentCount = src.contentCount;
         target.toolMsgTokens = src.toolMsgTokens;
         target.toolMsgCount = src.toolMsgCount;
+        target.summaryActive = src.summaryActive;
+        target.summaryTokens = src.summaryTokens;
         target.recentInputTokens = src.recentInputTokens;
         target.recentOutputTokens = src.recentOutputTokens;
     }

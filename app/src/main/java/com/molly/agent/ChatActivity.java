@@ -133,6 +133,7 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
                         messageAdapter.setItems(new ArrayList<>());
                         Toast.makeText(this, "Membuka sesi eksekusi tugas...", Toast.LENGTH_SHORT).show();
                         fetchLatestMessages(true);
+                        refreshContextUsageSilently();
                     }
                 }
             });
@@ -426,6 +427,7 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
 
         Toast.makeText(this, "Membuka: " + session.getTitle(), Toast.LENGTH_SHORT).show();
         fetchLatestMessages(true);
+        refreshContextUsageSilently();
     }
 
     @Override
@@ -975,6 +977,7 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
             return;
         }
         startSessionHeartbeat();
+        refreshContextUsageSilently();
     }
 
     @Override
