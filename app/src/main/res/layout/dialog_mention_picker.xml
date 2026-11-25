@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_sheet_dialog"
+    android:backgroundTint="#13161A"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <!-- Header & Search Input -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@"
+            android:textColor="@color/primary_gold"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/etSearchMention"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_code_block"
+            android:backgroundTint="#1A1E24"
+            android:hint="Cari skill, agent, atau perintah..."
+            android:paddingHorizontal="10dp"
+            android:singleLine="true"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#4B5563"
+            android:textSize="13sp" />
+
+        <ImageView
+            android:id="@+id/btnCloseMention"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginStart="8dp"
+            android:background="?selectableItemBackgroundBorderless"
+            android:contentDescription="Tutup"
+            android:padding="6dp"
+            android:src="@drawable/ic_clear"
+            android:tint="#9CA3AF" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginVertical="10dp"
+        android:background="#262D35" />
+
+    <!-- Mention List -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvMentionList"
+        android:layout_width="match_parent"
+        android:layout_height="320dp"
+        android:clipToPadding="false"
+        android:overScrollMode="never" />
+
+</LinearLayout>

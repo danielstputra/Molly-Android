@@ -137,12 +137,18 @@ public class ChatDisplayItem {
         int count = subTools.size();
         Set<String> uniqueToolNames = new LinkedHashSet<>();
         for (SubToolCall s : subTools) {
-            uniqueToolNames.add(s.toolName);
+            if (s.toolName != null && !s.toolName.trim().isEmpty()) {
+                uniqueToolNames.add(s.toolName.trim());
+            }
         }
         StringBuilder sb = new StringBuilder();
-        sb.append(count).append(" tools called");
-        for (String name : uniqueToolNames) {
-            sb.append(" · ").append(name);
+        if (count == 1 && !uniqueToolNames.isEmpty()) {
+            sb.append(uniqueToolNames.iterator().next());
+        } else {
+            sb.append(count).append(" tools called");
+            for (String name : uniqueToolNames) {
+                sb.append(" · ").append(name);
+            }
         }
         return sb.toString();
     }

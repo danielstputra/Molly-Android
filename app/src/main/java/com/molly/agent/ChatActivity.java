@@ -227,6 +227,34 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
         btnSelectApproval.setOnClickListener(v -> showApprovalModeDialog());
         btnSelectModel.setOnClickListener(v -> showModelPickerDialog());
 
+        // Tombol + di sebelah kiri input pesan (Video 1 & 2)
+        ImageView btnAddAttachment = findViewById(R.id.btnAddAttachment);
+        if (btnAddAttachment != null) {
+            btnAddAttachment.setOnClickListener(v -> showAttachmentOptionsDialog());
+        }
+
+        // Listener teks ketikan pengguna untuk trigger popup @mention otomatis
+        etMessage.addTextChangedListener(new android.text.TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                if (s != null && s.length() > 0) {
+                    int cursor = etMessage.getSelectionStart();
+                    if (cursor > 0 && s.charAt(cursor - 1) == '@') {
+                        // Buka popup mention picker (Skills, Agents, Files)
+                        com.molly.agent.ui.MentionPickerHelper.show(ChatActivity.this, apiClient, "", item -> {
+                            insertMentionIntoInput(item.name);
+                        });
+                    }
+                }
+            }
+
+            @Override
+            public void afterTextChanged(android.text.Editable s) {}
+        });
+
         // Event Drawer
         btnDrawerNewSession.setOnClickListener(v -> handleNewSessionChat());
         tabActiveSessions.setOnClickListener(v -> {
@@ -239,6 +267,14 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
             updateTabUi();
             loadDrawerSessions();
         });
+
+        View btnDrawerWorkspaceFiles = findViewById(R.id.btnDrawerWorkspaceFiles);
+        if (btnDrawerWorkspaceFiles != null) {
+            btnDrawerWorkspaceFiles.setOnClickListener(v -> {
+                drawerLayout.closeDrawers();
+                startActivity(new Intent(this, PersonalSpaceActivity.class));
+            });
+        }
 
         View btnDrawerScheduler = findViewById(R.id.btnDrawerScheduler);
         if (btnDrawerScheduler != null) {
@@ -272,6 +308,14 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
             });
         }
 
+        View btnDrawerCheckUpdate = findViewById(R.id.btnDrawerCheckUpdate);
+        if (btnDrawerCheckUpdate != null) {
+            btnDrawerCheckUpdate.setOnClickListener(v -> {
+                drawerLayout.closeDrawers();
+                com.molly.agent.update.AppUpdateManager.checkForUpdate(this, apiClient, true);
+            });
+        }
+
         View btnDrawerAbout = findViewById(R.id.btnDrawerAbout);
         if (btnDrawerAbout != null) {
             btnDrawerAbout.setOnClickListener(v -> {
@@ -279,6 +323,9 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
                 com.molly.agent.ui.AboutAppDialogHelper.show(this);
             });
         }
+
+        // Auto-check pembaruan aplikasi secara realtime di latar belakang
+        com.molly.agent.update.AppUpdateManager.checkForUpdate(this, apiClient, false);
 
         updateActionPillsUi();
 
@@ -502,35 +549,52 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
         loadMetadata();
     }
 
-    private void showModelPickerDialog() {
-        if (availableModels == null || availableModels.isEmpty()) {
-            availableModels = apiClient.getCachedOrFallbackModels();
-        }
-
-        String[] displayNames = new String[availableModels.size()];
-        int selectedIndex = 0;
-        for (int i = 0; i < availableModels.size(); i++) {
-            MollyApiClient.ModelItem m = availableModels.get(i);
-            displayNames[i] = m.name + " (" + m.provider + ")";
-            if (m.name.equalsIgnoreCase(apiClient.getSelectedModelName()) ||
-                m.id.equalsIgnoreCase(apiClient.getSelectedModelId())) {
-                selectedIndex = i;
-            }
-        }
-
+    private void showAttachmentOptionsDialog() {
+        String[] options = {
+                "💡 @ Sebutkan Skill atau Agen",
+                "📁 Sisipkan Berkas Ruang Kerja",
+                "📂 Buka Ruang Kerja Penuh (Personal Space)"
+        };
         new AlertDialog.Builder(this)
-                .setTitle("Pilih Model & Provider AI")
-                .setSingleChoiceItems(displayNames, selectedIndex, (dialog, which) -> {
-                    MollyApiClient.ModelItem chosen = availableModels.get(which);
-                    apiClient.setSelectedModel(chosen.id, chosen.name);
-                    updateActionPillsUi();
-                    dialog.dismiss();
+                .setTitle("Tambah Konten / Referensi")
+                .setItems(options, (dialog, which) -> {
+                    if (which == 0) {
+                        com.molly.agent.ui.MentionPickerHelper.show(this, apiClient, "", item -> {
+                            insertMentionIntoInput(item.name);
+                        });
+                    } else if (which == 1) {
+                        com.molly.agent.ui.WorkspaceFilesDialogHelper.show(this, apiClient, file -> {
+                            String current = etMessage.getText() != null ? etMessage.getText().toString() : "";
+                            etMessage.setText(current + " [Berkas: " + file.path + "] ");
+                            etMessage.setSelection(etMessage.getText().length());
+                        });
+                    } else if (which == 2) {
+                        startActivity(new Intent(this, PersonalSpaceActivity.class));
+                    }
                 })
-                .setNegativeButton("Batal", null)
                 .show();
+    }
 
-        // Refresh metadata di background non-blocking
-        loadMetadata();
+    private void insertMentionIntoInput(String name) {
+        if (name == null || name.isEmpty()) return;
+        String current = etMessage.getText() != null ? etMessage.getText().toString() : "";
+        if (current.endsWith("@")) {
+            current = current.substring(0, current.length() - 1);
+        }
+        etMessage.setText(current + "@" + name + " ");
+        etMessage.setSelection(etMessage.getText().length());
+    }
+
+    private void showModelPickerDialog() {
+        com.molly.agent.ui.ModelSelectorDialogHelper.show(
+                this,
+                apiClient,
+                apiClient.getSelectedModelName(),
+                (chosenId, chosenName) -> {
+                    apiClient.setSelectedModel(chosenId, chosenName);
+                    updateActionPillsUi();
+                }
+        );
     }
 
     private void showApprovalModeDialog() {

@@ -113,6 +113,42 @@
         android:layout_height="1dp"
         android:background="@color/border_dark" />
 
+    <!-- Menu Berkas Ruang Kerja (Workspace Files - Video 2) -->
+    <LinearLayout
+        android:id="@+id/btnDrawerWorkspaceFiles"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="12dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="📁"
+            android:textSize="14sp" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:text="Berkas Ruang Kerja (Workspace)"
+            android:textColor="@color/text_white"
+            android:textSize="13sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Buka ❯"
+            android:textColor="@color/primary_gold"
+            android:textSize="11sp" />
+    </LinearLayout>
+
     <!-- Menu Tugas Terjadwal (Task Scheduler) -->
     <LinearLayout
         android:id="@+id/btnDrawerScheduler"
@@ -255,6 +291,43 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Ubah ❯"
+            android:textColor="@color/primary_gold"
+            android:textSize="11sp" />
+    </LinearLayout>
+
+    <!-- Menu Periksa Pembaruan Aplikasi (Auto-Update) -->
+    <LinearLayout
+        android:id="@+id/btnDrawerCheckUpdate"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="12dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🔄"
+            android:textSize="14sp" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:text="Periksa Pembaruan"
+            android:textColor="@color/text_white"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/tvDrawerUpdateBadge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Cek ❯"
             android:textColor="@color/primary_gold"
             android:textSize="11sp" />
     </LinearLayout>

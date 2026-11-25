@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?selectableItemBackground"
+    android:clickable="true"
+    android:focusable="true"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingHorizontal="14dp"
+    android:paddingVertical="10dp">
+
+    <!-- Selection Checkbox -->
+    <CheckBox
+        android:id="@+id/cbFileSelect"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:buttonTint="@color/primary_gold" />
+
+    <!-- File or Folder Icon -->
+    <TextView
+        android:id="@+id/tvItemIcon"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:text="📁"
+        android:textSize="17sp" />
+
+    <!-- Name & Subpath -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tvItemName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:ellipsize="middle"
+            android:maxLines="1"
+            android:text="agents"
+            android:textColor="#E5E7EB"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/tvItemSubPath"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:ellipsize="start"
+            android:maxLines="1"
+            android:text="/agents"
+            android:textColor="#6B7280"
+            android:textSize="10sp"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <!-- Size Column (ukuran) -->
+    <TextView
+        android:id="@+id/tvItemSize"
+        android:layout_width="70dp"
+        android:layout_height="wrap_content"
+        android:gravity="end"
+        android:text="-"
+        android:textColor="#9CA3AF"
+        android:textSize="12sp" />
+
+    <!-- Last Modified Column (waktu modifikasi) -->
+    <TextView
+        android:id="@+id/tvItemModified"
+        android:layout_width="85dp"
+        android:layout_height="wrap_content"
+        android:gravity="end"
+        android:text="1 天前"
+        android:textColor="#9CA3AF"
+        android:textSize="11sp" />
+
+    <!-- Action Menu Button (...) -->
+    <ImageView
+        android:id="@+id/btnItemActions"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:background="?selectableItemBackgroundBorderless"
+        android:clickable="true"
+        android:contentDescription="Opsi"
+        android:focusable="true"
+        android:padding="6dp"
+        android:src="@drawable/ic_more_vert"
+        android:tint="#9CA3AF" />
+
+</LinearLayout>

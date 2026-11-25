@@ -1,0 +1,350 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#121417"
+    android:orientation="vertical">
+
+    <!-- Top App Bar -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:background="#181C22"
+        android:elevation="4dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="14dp">
+
+        <ImageView
+            android:id="@+id/btnBackPersonalSpace"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="?selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:contentDescription="Kembali"
+            android:focusable="true"
+            android:padding="6dp"
+            android:src="@drawable/ic_arrow_back"
+            android:tint="#FFFFFF" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:text="Ruang Kerja (Personal Space)"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <ImageView
+            android:id="@+id/btnSearchFiles"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginEnd="4dp"
+            android:background="?selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:contentDescription="Cari Berkas"
+            android:focusable="true"
+            android:padding="8dp"
+            android:src="@drawable/ic_search"
+            android:tint="#D1D5DB" />
+
+        <ImageView
+            android:id="@+id/btnNewFolder"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginEnd="4dp"
+            android:background="?selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:contentDescription="Folder Baru"
+            android:focusable="true"
+            android:padding="8dp"
+            android:src="@drawable/ic_plus"
+            android:tint="@color/primary_gold" />
+
+        <ImageView
+            android:id="@+id/btnRefreshFiles"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="?selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:contentDescription="Segarkan"
+            android:focusable="true"
+            android:padding="8dp"
+            android:src="@drawable/ic_refresh"
+            android:tint="#D1D5DB" />
+    </LinearLayout>
+
+    <!-- Search Box (Toggleable) -->
+    <LinearLayout
+        android:id="@+id/llSearchContainer"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:background="#1E232B"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="14dp"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🔍"
+            android:textSize="14sp" />
+
+        <EditText
+            android:id="@+id/etSearchQuery"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:background="@android:color/transparent"
+            android:hint="Cari berkas di ruang kerja..."
+            android:imeOptions="actionSearch"
+            android:inputType="text"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#9CA3AF"
+            android:textSize="13sp" />
+
+        <ImageView
+            android:id="@+id/btnClearSearch"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:background="?selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"
+            android:padding="4dp"
+            android:src="@drawable/ic_clear"
+            android:tint="#9CA3AF" />
+    </LinearLayout>
+
+    <!-- Quick Access Tabs (All Files, Agent Files, Projects) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#14171C"
+        android:orientation="horizontal"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="8dp">
+
+        <TextView
+            android:id="@+id/tabAllFiles"
+            android:layout_width="wrap_content"
+            android:layout_height="30dp"
+            android:background="@drawable/bg_action_pill"
+            android:backgroundTint="#33F3BA32"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:paddingHorizontal="12dp"
+            android:text="📁 Semua Berkas"
+            android:textColor="@color/primary_gold"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tabAgentFiles"
+            android:layout_width="wrap_content"
+            android:layout_height="30dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/bg_action_pill"
+            android:backgroundTint="#242932"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:paddingHorizontal="12dp"
+            android:text="🤖 Berkas Agen"
+            android:textColor="#9CA3AF"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/tabProjectFiles"
+            android:layout_width="wrap_content"
+            android:layout_height="30dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/bg_action_pill"
+            android:backgroundTint="#242932"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:paddingHorizontal="12dp"
+            android:text="📂 Projects"
+            android:textColor="#9CA3AF"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <!-- Breadcrumb Navigation Bar (seperti di Video Frame 15) -->
+    <LinearLayout
+        android:id="@+id/llBreadcrumbs"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#181C22"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="14dp"
+        android:paddingVertical="8dp">
+
+        <TextView
+            android:id="@+id/tvBreadcrumbRoot"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:clickable="true"
+            android:focusable="true"
+            android:text="All files"
+            android:textColor="@color/primary_gold"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvBreadcrumbSub"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:text="/ agents / skills"
+            android:textColor="#9CA3AF"
+            android:textSize="13sp"
+            android:visibility="gone" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <TextView
+            android:id="@+id/tvItemCount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="2item"
+            android:textColor="#6B7280"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <!-- Batch Actions Bar (Hapus yang dipilih - seperti di Video Frame 35) -->
+    <LinearLayout
+        android:id="@+id/llBatchActionBar"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:background="#2E181A"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="14dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/tvSelectedCount"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="1 berkas dipilih"
+            android:textColor="#FCA5A5"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/btnBatchDelete"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_action_pill"
+            android:backgroundTint="#EF4444"
+            android:clickable="true"
+            android:focusable="true"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="4dp"
+            android:text="Hapus yang dipilih"
+            android:textColor="#FFFFFF"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Table Header (nama, ukuran, waktu modifikasi) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="32dp"
+        android:background="#15181E"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="14dp">
+
+        <CheckBox
+            android:id="@+id/cbSelectAll"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:buttonTint="@color/primary_gold" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:text="nama"
+            android:textColor="#9CA3AF"
+            android:textSize="12sp" />
+
+        <TextView
+            android:layout_width="70dp"
+            android:layout_height="wrap_content"
+            android:gravity="end"
+            android:text="ukuran"
+            android:textColor="#9CA3AF"
+            android:textSize="12sp" />
+
+        <TextView
+            android:layout_width="85dp"
+            android:layout_height="wrap_content"
+            android:gravity="end"
+            android:text="waktu"
+            android:textColor="#9CA3AF"
+            android:textSize="12sp" />
+
+        <View
+            android:layout_width="32dp"
+            android:layout_height="1dp" />
+    </LinearLayout>
+
+    <!-- Progress Indicator -->
+    <ProgressBar
+        android:id="@+id/pbLoading"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="3dp"
+        android:indeterminate="true"
+        android:indeterminateTint="@color/primary_gold"
+        android:visibility="gone" />
+
+    <!-- File List RecyclerView -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvFileList"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:overScrollMode="never"
+        android:paddingVertical="2dp" />
+
+    <!-- Empty State -->
+    <LinearLayout
+        android:id="@+id/llEmptyState"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="📥"
+            android:textSize="36sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Folder saat ini kosong"
+            android:textColor="#9CA3AF"
+            android:textSize="14sp" />
+    </LinearLayout>
+
+</LinearLayout>

@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_sheet_dialog"
+    android:backgroundTint="#13161A"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <!-- Title & Close -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Pilih Model AI"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <ImageView
+            android:id="@+id/btnCloseModelSelector"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:background="?selectableItemBackgroundBorderless"
+            android:contentDescription="Tutup"
+            android:padding="6dp"
+            android:src="@drawable/ic_clear"
+            android:tint="#9CA3AF" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginVertical="10dp"
+        android:background="#262D35" />
+
+    <!-- Models List Grouped by Provider -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvGroupedModels"
+        android:layout_width="match_parent"
+        android:layout_height="320dp"
+        android:clipToPadding="false"
+        android:overScrollMode="never" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginVertical="10dp"
+        android:background="#262D35" />
+
+    <!-- Footer: Link to Configure Providers (Video 1) -->
+    <LinearLayout
+        android:id="@+id/btnConfigProvidersFooter"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_action_pill"
+        android:backgroundTint="#1A38BDF8"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:paddingVertical="10dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="⚙️ Tidak punya model yang tepat? "
+            android:textColor="#9CA3AF"
+            android:textSize="12sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Konfigurasikan modelnya"
+            android:textColor="@color/primary_gold"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+</LinearLayout>

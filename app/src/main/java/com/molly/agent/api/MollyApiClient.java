@@ -1137,6 +1137,7 @@ public class MollyApiClient {
                 }
                 // Kasus 5: Respon Teks Asisten / Agen (Bisa Mengandung <think>...</think>)
                 else if ("assistant".equalsIgnoreCase(role) || "agent".equalsIgnoreCase(role) || "message".equalsIgnoreCase(type)) {
+                    currentToolGroup = null;
                     StringBuilder textBuilder = new StringBuilder();
                     if (item.has("content") && item.get("content").isJsonArray()) {
                         for (JsonElement c : item.getAsJsonArray("content")) {
@@ -1941,6 +1942,185 @@ public class MollyApiClient {
                     return;
                 }
                 mainHandler.post(() -> callback.onSuccess("Cache model berhasil diperbarui!"));
+            }
+        });
+    }
+
+    /**
+     * Mengambil daftar berkas dan folder dari ruang kerja (Workspace Files)
+     */
+    public void fetchWorkspaceFiles(String path, String query, ApiCallback<List<com.molly.agent.model.WorkspaceFileItem>> callback) {
+        if (!isConfigured()) {
+            callback.onError("Server belum terhubung");
+            return;
+        }
+
+        String p = path != null ? path.trim() : "/";
+        String q = query != null ? query.trim() : "";
+        String endpoint = serverUrl + "/api/system/mobile/workspace/files?path=" + java.net.URLEncoder.encode(p) + "&query=" + java.net.URLEncoder.encode(q);
+        Request request = new Request.Builder()
+                .url(endpoint)
+                .addHeader("Authorization", "Bearer " + token)
+                .addHeader("Bypass-Tunnel-Reminder", "true")
+                .get()
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                mainHandler.post(() -> callback.onError(e.getMessage()));
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                if (!response.isSuccessful()) {
+                    mainHandler.post(() -> callback.onError("Error: " + response.code()));
+                    return;
+                }
+
+                String bodyStr = response.body() != null ? response.body().string() : "{}";
+                List<com.molly.agent.model.WorkspaceFileItem> results = new ArrayList<>();
+                try {
+                    JsonObject obj = JsonParser.parseString(bodyStr).getAsJsonObject();
+                    JsonArray arr = null;
+                    if (obj.has("entries") && obj.get("entries").isJsonArray()) {
+                        arr = obj.getAsJsonArray("entries");
+                    } else if (obj.has("files") && obj.get("files").isJsonArray()) {
+                        arr = obj.getAsJsonArray("files");
+                    }
+                    if (arr != null) {
+                        for (JsonElement el : arr) {
+                            if (!el.isJsonObject()) continue;
+                            JsonObject f = el.getAsJsonObject();
+                            String name = f.has("name") ? f.get("name").getAsString() : "";
+                            String pth = f.has("path") ? f.get("path").getAsString() : "";
+                            boolean isDir = (f.has("is_directory") && f.get("is_directory").getAsBoolean()) ||
+                                            (f.has("is_dir") && f.get("is_dir").getAsBoolean());
+                            long size = f.has("size_bytes") ? f.get("size_bytes").getAsLong() : (f.has("size") ? f.get("size").getAsLong() : 0);
+                            String mod = f.has("last_modified") ? f.get("last_modified").getAsString() : "";
+                            results.add(new com.molly.agent.model.WorkspaceFileItem(name, pth, isDir, size, mod));
+                        }
+                    }
+                } catch (Exception e) {
+                    mainHandler.post(() -> callback.onError("Gagal parse berkas: " + e.getMessage()));
+                    return;
+                }
+                mainHandler.post(() -> callback.onSuccess(results));
+            }
+        });
+    }
+
+    public void createWorkspaceFolder(String parentPath, String name, ApiCallback<Boolean> callback) {
+        if (!isConfigured()) {
+            callback.onError("Server belum terhubung");
+            return;
+        }
+
+        String endpoint = serverUrl + "/api/system/mobile/workspace/mkdir";
+        JsonObject body = new JsonObject();
+        body.addProperty("parent_path", parentPath != null ? parentPath : "/");
+        body.addProperty("name", name);
+
+        RequestBody reqBody = RequestBody.create(body.toString(), MediaType.parse("application/json; charset=utf-8"));
+        Request request = new Request.Builder()
+                .url(endpoint)
+                .addHeader("Authorization", "Bearer " + token)
+                .addHeader("Bypass-Tunnel-Reminder", "true")
+                .post(reqBody)
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                mainHandler.post(() -> callback.onError(e.getMessage()));
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                if (!response.isSuccessful()) {
+                    mainHandler.post(() -> callback.onError("Gagal membuat folder: " + response.code()));
+                    return;
+                }
+                mainHandler.post(() -> callback.onSuccess(true));
+            }
+        });
+    }
+
+    public void deleteWorkspaceFiles(List<String> paths, ApiCallback<Boolean> callback) {
+        if (!isConfigured()) {
+            callback.onError("Server belum terhubung");
+            return;
+        }
+
+        String endpoint = serverUrl + "/api/system/mobile/workspace/delete";
+        JsonObject body = new JsonObject();
+        JsonArray arr = new JsonArray();
+        if (paths != null) {
+            for (String p : paths) arr.add(p);
+        }
+        body.add("paths", arr);
+
+        RequestBody reqBody = RequestBody.create(body.toString(), MediaType.parse("application/json; charset=utf-8"));
+        Request request = new Request.Builder()
+                .url(endpoint)
+                .addHeader("Authorization", "Bearer " + token)
+                .addHeader("Bypass-Tunnel-Reminder", "true")
+                .post(reqBody)
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                mainHandler.post(() -> callback.onError(e.getMessage()));
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                if (!response.isSuccessful()) {
+                    mainHandler.post(() -> callback.onError("Gagal menghapus berkas: " + response.code()));
+                    return;
+                }
+                mainHandler.post(() -> callback.onSuccess(true));
+            }
+        });
+    }
+
+    /**
+     * Mengambil JSON mentah metadata sistem (skills, agents, models) untuk helper picker.
+     */
+    public void fetchMetadataJson(ApiCallback<JsonObject> callback) {
+        if (!isConfigured()) {
+            callback.onError("Server belum terhubung");
+            return;
+        }
+
+        String endpoint = serverUrl + "/api/system/mobile/metadata";
+        Request request = new Request.Builder()
+                .url(endpoint)
+                .addHeader("Authorization", "Bearer " + token)
+                .addHeader("Bypass-Tunnel-Reminder", "true")
+                .get()
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                mainHandler.post(() -> callback.onError(e.getMessage()));
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                if (!response.isSuccessful()) {
+                    mainHandler.post(() -> callback.onError("Error: " + response.code()));
+                    return;
+                }
+                String bodyStr = response.body() != null ? response.body().string() : "{}";
+                try {
+                    JsonObject obj = JsonParser.parseString(bodyStr).getAsJsonObject();
+                    mainHandler.post(() -> callback.onSuccess(obj));
+                } catch (Exception ex) {
+                    mainHandler.post(() -> callback.onError("Parse error: " + ex.getMessage()));
+                }
             }
         });
     }

@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?selectableItemBackground"
+    android:clickable="true"
+    android:focusable="true"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingHorizontal="14dp"
+    android:paddingVertical="10dp">
+
+    <!-- Checkbox Seleksi -->
+    <CheckBox
+        android:id="@+id/cbSelectFile"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:buttonTint="@color/primary_gold" />
+
+    <!-- Icon Tipe Berkas / Folder -->
+    <TextView
+        android:id="@+id/tvRowIcon"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:text="📁"
+        android:textSize="18sp" />
+
+    <!-- Nama Berkas / Direktori -->
+    <TextView
+        android:id="@+id/tvRowName"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_weight="1"
+        android:ellipsize="middle"
+        android:maxLines="1"
+        android:text="agents"
+        android:textColor="#FFFFFF"
+        android:textSize="13sp" />
+
+    <!-- Ukuran -->
+    <TextView
+        android:id="@+id/tvRowSize"
+        android:layout_width="70dp"
+        android:layout_height="wrap_content"
+        android:gravity="end"
+        android:text="-"
+        android:textColor="#9CA3AF"
+        android:textSize="12sp" />
+
+    <!-- Waktu Modifikasi -->
+    <TextView
+        android:id="@+id/tvRowTime"
+        android:layout_width="85dp"
+        android:layout_height="wrap_content"
+        android:gravity="end"
+        android:text="1 天前"
+        android:textColor="#9CA3AF"
+        android:textSize="11sp" />
+
+    <!-- Action Menu Button (...) -->
+    <ImageView
+        android:id="@+id/btnRowOptions"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:layout_marginStart="4dp"
+        android:background="?selectableItemBackgroundBorderless"
+        android:clickable="true"
+        android:contentDescription="Opsi Berkas"
+        android:focusable="true"
+        android:padding="6dp"
+        android:src="@drawable/ic_more"
+        android:tint="#9CA3AF" />
+
+</LinearLayout>
