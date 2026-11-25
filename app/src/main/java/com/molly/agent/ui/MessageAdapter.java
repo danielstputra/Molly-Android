@@ -119,6 +119,15 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             tvAgentMessage = itemView.findViewById(R.id.tvAgentMessage);
             tvAgentTimestamp = itemView.findViewById(R.id.tvAgentTimestamp);
 
+            if (tvAgentMessage != null) {
+                tvAgentMessage.setMovementMethod(android.text.method.LinkMovementMethod.getInstance());
+                tvAgentMessage.setLinkTextColor(0xFF38BDF8);
+            }
+            if (tvUserMessage != null) {
+                tvUserMessage.setMovementMethod(android.text.method.LinkMovementMethod.getInstance());
+                tvUserMessage.setLinkTextColor(0xFF38BDF8);
+            }
+
             btnThumbUp = itemView.findViewById(R.id.btnThumbUp);
             btnThumbDown = itemView.findViewById(R.id.btnThumbDown);
             btnCopyMessage = itemView.findViewById(R.id.btnCopyMessage);
@@ -131,12 +140,12 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             if (isUser) {
                 llUserContainer.setVisibility(View.VISIBLE);
                 llAgentContainer.setVisibility(View.GONE);
-                tvUserMessage.setText(item.getText());
+                tvUserMessage.setText(MarkdownHelper.render(ctx, item.getText()));
                 tvUserTimestamp.setText(item.getTimestamp());
             } else {
                 llUserContainer.setVisibility(View.GONE);
                 llAgentContainer.setVisibility(View.VISIBLE);
-                tvAgentMessage.setText(item.getText());
+                tvAgentMessage.setText(MarkdownHelper.render(ctx, item.getText()));
 
                 String time = item.getTimestamp() != null && !item.getTimestamp().isEmpty() ? item.getTimestamp() : "12:00";
                 tvAgentTimestamp.setText(time);
@@ -449,8 +458,9 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         }
 
         public void bind(ChatDisplayItem item) {
+            Context ctx = itemView.getContext();
             String content = item.getText() != null ? item.getText().trim() : "";
-            tvThinkingContent.setText(content);
+            tvThinkingContent.setText(MarkdownHelper.render(ctx, content));
 
             // Tentukan label durasi / status thinking seperti di Molly Web (Gambar 3)
             if (content.isEmpty()) {
