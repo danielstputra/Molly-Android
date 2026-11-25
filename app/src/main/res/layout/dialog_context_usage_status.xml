@@ -2,12 +2,11 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@drawable/bg_tool_call_card"
-    android:backgroundTint="#13161A"
+    android:background="@drawable/bg_sheet_dialog"
     android:orientation="vertical"
     android:paddingHorizontal="16dp"
     android:paddingTop="14dp"
-    android:paddingBottom="18dp">
+    android:paddingBottom="16dp">
 
     <!-- Header: Status + Refresh Button -->
     <LinearLayout
@@ -20,7 +19,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Status"
+            android:text="Status Konteks &amp; Token"
             android:textColor="#E2E8F0"
             android:textSize="17sp"
             android:textStyle="bold" />
@@ -43,6 +42,19 @@
             android:focusable="true"
             android:padding="6dp"
             android:src="@drawable/ic_refresh" />
+
+        <ImageView
+            android:id="@+id/btnCloseContextStatus"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginStart="4dp"
+            android:background="?selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:contentDescription="Tutup"
+            android:focusable="true"
+            android:padding="6dp"
+            android:src="@drawable/ic_clear"
+            android:tint="#9CA3AF" />
     </LinearLayout>
 
     <ScrollView
@@ -569,5 +581,26 @@
 
         </LinearLayout>
     </ScrollView>
+
+    <!-- Custom Bottom Close Button -->
+    <LinearLayout
+        android:id="@+id/btnCloseContextBottom"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:layout_marginTop="14dp"
+        android:background="@drawable/bg_tool_call_card"
+        android:backgroundTint="#1F232B"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Tutup"
+            android:textColor="@color/primary_gold"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+    </LinearLayout>
 
 </LinearLayout>

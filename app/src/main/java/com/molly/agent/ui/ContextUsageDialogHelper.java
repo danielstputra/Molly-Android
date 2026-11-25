@@ -1,10 +1,15 @@
 package com.molly.agent.ui;
 
 import android.app.AlertDialog;
+import android.app.Dialog;
 import android.content.Context;
 import android.content.res.ColorStateList;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.Window;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
@@ -54,11 +59,25 @@ public class ContextUsageDialogHelper {
 
         ProgressBar pbStatusRefreshing = dialogView.findViewById(R.id.pbStatusRefreshing);
         ImageView btnRefreshStatus = dialogView.findViewById(R.id.btnRefreshStatus);
+        View btnCloseContextStatus = dialogView.findViewById(R.id.btnCloseContextStatus);
+        View btnCloseContextBottom = dialogView.findViewById(R.id.btnCloseContextBottom);
 
-        AlertDialog dialog = new AlertDialog.Builder(context)
-                .setView(dialogView)
-                .setPositiveButton("Tutup", null)
-                .create();
+        Dialog dialog = new Dialog(context);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        dialog.setContentView(dialogView);
+
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            int width = (int) (context.getResources().getDisplayMetrics().widthPixels * 0.92);
+            dialog.getWindow().setLayout(width, ViewGroup.LayoutParams.WRAP_CONTENT);
+        }
+
+        if (btnCloseContextStatus != null) {
+            btnCloseContextStatus.setOnClickListener(v -> dialog.dismiss());
+        }
+        if (btnCloseContextBottom != null) {
+            btnCloseContextBottom.setOnClickListener(v -> dialog.dismiss());
+        }
 
         // Helper untuk mengisi data
         Runnable bindData = () -> {
@@ -151,7 +170,7 @@ public class ContextUsageDialogHelper {
 
         // Compress Context action
         btnCompressContext.setOnClickListener(v -> {
-            new AlertDialog.Builder(context)
+            AlertDialog confirmDialog = new AlertDialog.Builder(context)
                     .setTitle("Kompres Konteks?")
                     .setMessage("Apakah Anda ingin memicu kompresi riwayat konteks sesi ini untuk menghemat kuota token?")
                     .setPositiveButton("Kompres", (d, w) -> {
@@ -170,7 +189,14 @@ public class ContextUsageDialogHelper {
                         });
                     })
                     .setNegativeButton("Batal", null)
-                    .show();
+                    .create();
+            confirmDialog.show();
+            if (confirmDialog.getButton(AlertDialog.BUTTON_POSITIVE) != null) {
+                confirmDialog.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(context.getColor(R.color.primary_gold));
+            }
+            if (confirmDialog.getButton(AlertDialog.BUTTON_NEGATIVE) != null) {
+                confirmDialog.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(0xFF9CA3AF);
+            }
         });
 
         dialog.show();
