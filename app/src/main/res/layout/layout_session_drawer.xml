@@ -113,6 +113,42 @@
         android:layout_height="1dp"
         android:background="@color/border_dark" />
 
+    <!-- Menu Tugas Terjadwal (Task Scheduler) -->
+    <LinearLayout
+        android:id="@+id/btnDrawerScheduler"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="12dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="⏰"
+            android:textSize="14sp" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:text="Tugas Terjadwal (Scheduler)"
+            android:textColor="@color/text_white"
+            android:textSize="13sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Kelola ❯"
+            android:textColor="@color/primary_gold"
+            android:textSize="11sp" />
+    </LinearLayout>
+
     <!-- Menu Status Penggunaan Token & Konteks -->
     <LinearLayout
         android:id="@+id/btnDrawerStatus"
@@ -218,7 +254,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="v1.0.5 ❯"
+            android:text="v1.0.6 ❯"
             android:textColor="@color/primary_gold"
             android:textSize="11sp" />
     </LinearLayout>

@@ -1,0 +1,406 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_sheet_dialog"
+    android:backgroundTint="#13161A">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <!-- Title -->
+        <TextView
+            android:id="@+id/tvEditTaskDialogTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="⏰ Buat Tugas Terjadwal"
+            android:textColor="#FFFFFF"
+            android:textSize="17sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="Atur eksekusi tugas AI otomatis secara berkala sesuai cron"
+            android:textColor="#9CA3AF"
+            android:textSize="12sp" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginVertical="14dp"
+            android:background="#262D35" />
+
+        <!-- 1. Nama Tugas -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Nama Tugas *"
+            android:textColor="#E5E7EB"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/etEditTaskName"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/bg_code_block"
+            android:backgroundTint="#1A1E24"
+            android:hint="Contoh: Laporan Harian Pagi"
+            android:paddingHorizontal="12dp"
+            android:singleLine="true"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#4B5563"
+            android:textSize="13sp" />
+
+        <!-- 2. Agen Pelaksana -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:text="Agen Pelaksana *"
+            android:textColor="#E5E7EB"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvEditTaskAgentSelect"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/bg_code_block"
+            android:backgroundTint="#1A1E24"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="12dp"
+            android:text="🤖 Pilih Agen Pelaksana..."
+            android:textColor="#38BDF8"
+            android:textSize="13sp" />
+
+        <!-- 3. Instruksi Prompt -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:text="Instruksi Tugas (Prompt) *"
+            android:textColor="#E5E7EB"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/etEditTaskPrompt"
+            android:layout_width="match_parent"
+            android:layout_height="96dp"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/bg_code_block"
+            android:backgroundTint="#1A1E24"
+            android:gravity="top|start"
+            android:hint="Tuliskan prompt instruksi yang akan dijalankan oleh agen..."
+            android:padding="12dp"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#4B5563"
+            android:textSize="13sp" />
+
+        <!-- 4. Frekuensi Jadwal -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:text="Frekuensi Eksekusi *"
+            android:textColor="#E5E7EB"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <RadioGroup
+            android:id="@+id/rgScheduleType"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:orientation="vertical">
+
+            <RadioButton
+                android:id="@+id/rbDaily"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="true"
+                android:text="Harian (Setiap Hari)"
+                android:textColor="#D1D5DB"
+                android:textSize="13sp" />
+
+            <RadioButton
+                android:id="@+id/rbWeekly"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Mingguan (Hari Tertentu)"
+                android:textColor="#D1D5DB"
+                android:textSize="13sp" />
+
+            <RadioButton
+                android:id="@+id/rbMonthly"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Bulanan (Tanggal Tertentu)"
+                android:textColor="#D1D5DB"
+                android:textSize="13sp" />
+
+            <RadioButton
+                android:id="@+id/rbCustomCron"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Kustom (Ekspresi Cron)"
+                android:textColor="#D1D5DB"
+                android:textSize="13sp" />
+        </RadioGroup>
+
+        <!-- Waktu Eksekusi (Jam & Menit) -->
+        <LinearLayout
+            android:id="@+id/llTimePickerContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Waktu:"
+                android:textColor="#9CA3AF"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/tvExecutionTime"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:layout_marginStart="10dp"
+                android:background="@drawable/bg_action_pill"
+                android:backgroundTint="#26F3BA32"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:paddingHorizontal="14dp"
+                android:text="09:00 WIB"
+                android:textColor="@color/primary_gold"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Pilihan Hari Mingguan (Muncul jika Mingguan dipilih) -->
+        <LinearLayout
+            android:id="@+id/llWeeklyDayContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Hari:"
+                android:textColor="#9CA3AF"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/tvWeeklyDaySelect"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:layout_marginStart="10dp"
+                android:background="@drawable/bg_action_pill"
+                android:backgroundTint="#2638BDF8"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:paddingHorizontal="14dp"
+                android:text="Senin ❯"
+                android:textColor="#38BDF8"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <!-- Pilihan Tanggal Bulanan (Muncul jika Bulanan dipilih) -->
+        <LinearLayout
+            android:id="@+id/llMonthlyDayContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Tanggal:"
+                android:textColor="#9CA3AF"
+                android:textSize="12sp" />
+
+            <EditText
+                android:id="@+id/etMonthlyDay"
+                android:layout_width="60dp"
+                android:layout_height="36dp"
+                android:layout_marginStart="10dp"
+                android:background="@drawable/bg_code_block"
+                android:backgroundTint="#1A1E24"
+                android:gravity="center"
+                android:inputType="number"
+                android:text="1"
+                android:textColor="#FFFFFF"
+                android:textSize="13sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:text="setiap bulan"
+                android:textColor="#9CA3AF"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <!-- Input Cron Kustom (Muncul jika Kustom Cron dipilih) -->
+        <LinearLayout
+            android:id="@+id/llCustomCronContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Ekspresi Cron (5 Segmen: m h dom mon dow):"
+                android:textColor="#9CA3AF"
+                android:textSize="11sp" />
+
+            <EditText
+                android:id="@+id/etCustomCron"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:layout_marginTop="4dp"
+                android:background="@drawable/bg_code_block"
+                android:backgroundTint="#1A1E24"
+                android:fontFamily="monospace"
+                android:hint="0 9 * * *"
+                android:paddingHorizontal="10dp"
+                android:singleLine="true"
+                android:textColor="@color/primary_gold"
+                android:textColorHint="#4B5563"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <!-- Cron Preview Summary -->
+        <TextView
+            android:id="@+id/tvCronSummaryPreview"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Ringkasan: Setiap hari pukul 09:00 (Cron: 0 9 * * *)"
+            android:textColor="#10B981"
+            android:textSize="11sp" />
+
+        <!-- 5. Mode Persetujuan Alat -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:text="Mode Persetujuan Alat (Tool Approval) *"
+            android:textColor="#E5E7EB"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <RadioGroup
+            android:id="@+id/rgToolApproval"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:orientation="vertical">
+
+            <RadioButton
+                android:id="@+id/rbApprovalTrust"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="true"
+                android:text="Kepercayaan Penuh (Eksekusi alat otomatis)"
+                android:textColor="#D1D5DB"
+                android:textSize="13sp" />
+
+            <RadioButton
+                android:id="@+id/rbApprovalManual"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Persetujuan Manual (Memerlukan izin pengguna)"
+                android:textColor="#D1D5DB"
+                android:textSize="13sp" />
+        </RadioGroup>
+
+        <!-- 6. Switch Aktifkan Tugas -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Aktifkan Tugas Terjadwal Ini"
+                android:textColor="#E5E7EB"
+                android:textSize="13sp" />
+
+            <androidx.appcompat.widget.SwitchCompat
+                android:id="@+id/swEditTaskEnabled"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="true" />
+        </LinearLayout>
+
+        <!-- Action Buttons -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/btnCancelEditTask"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_marginEnd="6dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_action_pill"
+                android:backgroundTint="#264B5563"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:text="Batal"
+                android:textColor="#9CA3AF"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/btnSaveTask"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_marginStart="6dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_action_pill"
+                android:backgroundTint="@color/primary_gold"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:text="Simpan Jadwal"
+                android:textColor="#121417"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+    </LinearLayout>
+</ScrollView>

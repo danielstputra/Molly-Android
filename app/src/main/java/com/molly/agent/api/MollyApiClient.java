@@ -1259,4 +1259,335 @@ public class MollyApiClient {
             }
         });
     }
+
+    // =========================================================================
+    // Scheduled Tasks API (/api/scheduled-tasks) - Task Scheduler
+    // =========================================================================
+
+    public void fetchScheduledTasks(ApiCallback<List<com.molly.agent.model.ScheduledTaskItem>> callback) {
+        if (!isConfigured()) {
+            callback.onError("Server belum dikonfigurasi");
+            return;
+        }
+
+        String endpoint = serverUrl + "/api/scheduled-tasks";
+        Request request = new Request.Builder()
+                .url(endpoint)
+                .addHeader("Authorization", "Bearer " + token)
+                .addHeader("Bypass-Tunnel-Reminder", "true")
+                .get()
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                mainHandler.post(() -> callback.onError(e.getMessage()));
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                if (!response.isSuccessful()) {
+                    mainHandler.post(() -> callback.onError("Status: " + response.code()));
+                    return;
+                }
+                try {
+                    String bodyStr = response.body() != null ? response.body().string() : "{}";
+                    JsonObject obj = JsonParser.parseString(bodyStr).getAsJsonObject();
+                    List<com.molly.agent.model.ScheduledTaskItem> list = new ArrayList<>();
+                    if (obj.has("jobs") && obj.get("jobs").isJsonArray()) {
+                        for (JsonElement el : obj.getAsJsonArray("jobs")) {
+                            if (el.isJsonObject()) {
+                                list.add(com.molly.agent.model.ScheduledTaskItem.fromJson(el.getAsJsonObject()));
+                            }
+                        }
+                    }
+                    mainHandler.post(() -> callback.onSuccess(list));
+                } catch (Exception e) {
+                    mainHandler.post(() -> callback.onError("Gagal parse tugas terjadwal: " + e.getMessage()));
+                }
+            }
+        });
+    }
+
+    public void createScheduledTask(JsonObject payload, ApiCallback<com.molly.agent.model.ScheduledTaskItem> callback) {
+        com.molly.agent.model.ScheduledTaskItem item = com.molly.agent.model.ScheduledTaskItem.fromJson(payload);
+        createScheduledTask(item, callback);
+    }
+
+    public void createScheduledTask(com.molly.agent.model.ScheduledTaskItem item, ApiCallback<com.molly.agent.model.ScheduledTaskItem> callback) {
+        if (!isConfigured()) {
+            callback.onError("Server belum dikonfigurasi");
+            return;
+        }
+
+        // Dapatkan project id valid terlebih dahulu jika kosong
+        if (item.projectId == null || item.projectId.trim().isEmpty() || item.projectId.equals("__auto__")) {
+            fetchFirstProjectId(new ApiCallback<String>() {
+                @Override
+                public void onSuccess(String foundProjectId) {
+                    item.projectId = foundProjectId;
+                    executeCreateScheduledTask(item, callback);
+                }
+
+                @Override
+                public void onError(String error) {
+                    item.projectId = "default";
+                    executeCreateScheduledTask(item, callback);
+                }
+            });
+            return;
+        }
+
+        executeCreateScheduledTask(item, callback);
+    }
+
+    private void executeCreateScheduledTask(com.molly.agent.model.ScheduledTaskItem item, ApiCallback<com.molly.agent.model.ScheduledTaskItem> callback) {
+        String endpoint = serverUrl + "/api/scheduled-tasks";
+
+        JsonObject bodyObj = new JsonObject();
+        bodyObj.addProperty("request_id", UUID.randomUUID().toString());
+        bodyObj.addProperty("name", item.name != null ? item.name.trim() : "Tugas Terjadwal Baru");
+        bodyObj.addProperty("project_id", item.projectId);
+        bodyObj.addProperty("agent_slug", item.agentSlug != null ? item.agentSlug : agentId);
+        bodyObj.addProperty("prompt", item.prompt != null ? item.prompt.trim() : "");
+        bodyObj.addProperty("cron_expression", item.cronExpression != null ? item.cronExpression : "0 9 * * *");
+        bodyObj.addProperty("timezone", item.timezone != null ? item.timezone : "Asia/Jakarta");
+        bodyObj.addProperty("tool_approval_mode", item.toolApprovalMode != null ? item.toolApprovalMode : "always_trust");
+        if (item.modelSpec != null && !item.modelSpec.isEmpty()) {
+            bodyObj.addProperty("model_spec", item.modelSpec);
+        }
+        bodyObj.addProperty("enabled", item.enabled);
+
+        RequestBody body = RequestBody.create(bodyObj.toString(), MediaType.parse("application/json; charset=utf-8"));
+        Request request = new Request.Builder()
+                .url(endpoint)
+                .addHeader("Authorization", "Bearer " + token)
+                .addHeader("Bypass-Tunnel-Reminder", "true")
+                .post(body)
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                mainHandler.post(() -> callback.onError(e.getMessage()));
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                if (!response.isSuccessful()) {
+                    String err = response.body() != null ? response.body().string() : "";
+                    mainHandler.post(() -> callback.onError("Gagal membuat tugas (" + response.code() + "): " + err));
+                    return;
+                }
+                try {
+                    String bodyStr = response.body() != null ? response.body().string() : "{}";
+                    JsonObject obj = JsonParser.parseString(bodyStr).getAsJsonObject();
+                    com.molly.agent.model.ScheduledTaskItem created = com.molly.agent.model.ScheduledTaskItem.fromJson(obj);
+                    mainHandler.post(() -> callback.onSuccess(created));
+                } catch (Exception e) {
+                    mainHandler.post(() -> callback.onError("Gagal parse respon: " + e.getMessage()));
+                }
+            }
+        });
+    }
+
+    public void updateScheduledTask(String jobId, JsonObject patch, ApiCallback<com.molly.agent.model.ScheduledTaskItem> callback) {
+        if (!isConfigured() || jobId == null) {
+            callback.onError("Parameter tidak valid");
+            return;
+        }
+
+        String endpoint = serverUrl + "/api/scheduled-tasks/" + jobId;
+        RequestBody body = RequestBody.create(patch.toString(), MediaType.parse("application/json; charset=utf-8"));
+        Request request = new Request.Builder()
+                .url(endpoint)
+                .addHeader("Authorization", "Bearer " + token)
+                .addHeader("Bypass-Tunnel-Reminder", "true")
+                .patch(body)
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                mainHandler.post(() -> callback.onError(e.getMessage()));
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                if (!response.isSuccessful()) {
+                    mainHandler.post(() -> callback.onError("Gagal update tugas: status " + response.code()));
+                    return;
+                }
+                try {
+                    String bodyStr = response.body() != null ? response.body().string() : "{}";
+                    JsonObject obj = JsonParser.parseString(bodyStr).getAsJsonObject();
+                    com.molly.agent.model.ScheduledTaskItem updated = com.molly.agent.model.ScheduledTaskItem.fromJson(obj);
+                    mainHandler.post(() -> callback.onSuccess(updated));
+                } catch (Exception e) {
+                    mainHandler.post(() -> callback.onError("Gagal parse update: " + e.getMessage()));
+                }
+            }
+        });
+    }
+
+    public void runScheduledTaskNow(String jobId, ApiCallback<com.molly.agent.model.ScheduledRunItem> callback) {
+        if (!isConfigured() || jobId == null) {
+            callback.onError("Parameter tidak valid");
+            return;
+        }
+
+        String endpoint = serverUrl + "/api/scheduled-tasks/" + jobId + "/run-now";
+        JsonObject req = new JsonObject();
+        req.addProperty("request_id", UUID.randomUUID().toString());
+
+        RequestBody body = RequestBody.create(req.toString(), MediaType.parse("application/json; charset=utf-8"));
+        Request request = new Request.Builder()
+                .url(endpoint)
+                .addHeader("Authorization", "Bearer " + token)
+                .addHeader("Bypass-Tunnel-Reminder", "true")
+                .post(body)
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                mainHandler.post(() -> callback.onError(e.getMessage()));
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                if (!response.isSuccessful()) {
+                    String err = response.body() != null ? response.body().string() : "";
+                    mainHandler.post(() -> callback.onError("Gagal run-now (" + response.code() + "): " + err));
+                    return;
+                }
+                try {
+                    String bodyStr = response.body() != null ? response.body().string() : "{}";
+                    JsonObject obj = JsonParser.parseString(bodyStr).getAsJsonObject();
+                    com.molly.agent.model.ScheduledRunItem run = com.molly.agent.model.ScheduledRunItem.fromJson(obj);
+                    mainHandler.post(() -> callback.onSuccess(run));
+                } catch (Exception e) {
+                    mainHandler.post(() -> callback.onError("Gagal parse respon run: " + e.getMessage()));
+                }
+            }
+        });
+    }
+
+    public void deleteScheduledTask(String jobId, ApiCallback<Boolean> callback) {
+        if (!isConfigured() || jobId == null) {
+            callback.onError("Parameter tidak valid");
+            return;
+        }
+
+        String endpoint = serverUrl + "/api/scheduled-tasks/" + jobId;
+        Request request = new Request.Builder()
+                .url(endpoint)
+                .addHeader("Authorization", "Bearer " + token)
+                .addHeader("Bypass-Tunnel-Reminder", "true")
+                .delete()
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                mainHandler.post(() -> callback.onError(e.getMessage()));
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                boolean ok = response.isSuccessful();
+                mainHandler.post(() -> {
+                    if (ok) callback.onSuccess(true);
+                    else callback.onError("Gagal menghapus tugas: status " + response.code());
+                });
+            }
+        });
+    }
+
+    public void fetchScheduledTaskHistory(String jobId, ApiCallback<List<com.molly.agent.model.ScheduledRunItem>> callback) {
+        fetchScheduledTaskHistory(jobId, 50, 0, callback);
+    }
+
+    public void fetchScheduledTaskHistory(String jobId, int limit, int offset, ApiCallback<List<com.molly.agent.model.ScheduledRunItem>> callback) {
+        if (!isConfigured() || jobId == null) {
+            callback.onError("Parameter tidak valid");
+            return;
+        }
+
+        String endpoint = serverUrl + "/api/scheduled-tasks/" + jobId + "/runs?limit=" + limit + "&offset=" + offset;
+        Request request = new Request.Builder()
+                .url(endpoint)
+                .addHeader("Authorization", "Bearer " + token)
+                .addHeader("Bypass-Tunnel-Reminder", "true")
+                .get()
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                mainHandler.post(() -> callback.onError(e.getMessage()));
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                if (!response.isSuccessful()) {
+                    mainHandler.post(() -> callback.onError("Gagal memuat riwayat: status " + response.code()));
+                    return;
+                }
+                try {
+                    String bodyStr = response.body() != null ? response.body().string() : "{}";
+                    JsonObject obj = JsonParser.parseString(bodyStr).getAsJsonObject();
+                    List<com.molly.agent.model.ScheduledRunItem> runs = new ArrayList<>();
+                    if (obj.has("items") && obj.get("items").isJsonArray()) {
+                        for (JsonElement el : obj.getAsJsonArray("items")) {
+                            if (el.isJsonObject()) {
+                                runs.add(com.molly.agent.model.ScheduledRunItem.fromJson(el.getAsJsonObject()));
+                            }
+                        }
+                    }
+                    mainHandler.post(() -> callback.onSuccess(runs));
+                } catch (Exception e) {
+                    mainHandler.post(() -> callback.onError("Gagal parse riwayat: " + e.getMessage()));
+                }
+            }
+        });
+    }
+
+    public void fetchFirstProjectId(ApiCallback<String> callback) {
+        String endpoint = serverUrl + "/api/projects";
+        Request request = new Request.Builder()
+                .url(endpoint)
+                .addHeader("Authorization", "Bearer " + token)
+                .addHeader("Bypass-Tunnel-Reminder", "true")
+                .get()
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                mainHandler.post(() -> callback.onError(e.getMessage()));
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                if (!response.isSuccessful()) {
+                    mainHandler.post(() -> callback.onError("Status: " + response.code()));
+                    return;
+                }
+                try {
+                    String bodyStr = response.body() != null ? response.body().string() : "[]";
+                    JsonElement root = JsonParser.parseString(bodyStr);
+                    if (root.isJsonArray() && root.getAsJsonArray().size() > 0) {
+                        JsonObject first = root.getAsJsonArray().get(0).getAsJsonObject();
+                        String pid = first.has("id") ? first.get("id").getAsString() : "default";
+                        mainHandler.post(() -> callback.onSuccess(pid));
+                        return;
+                    }
+                    mainHandler.post(() -> callback.onSuccess("default"));
+                } catch (Exception e) {
+                    mainHandler.post(() -> callback.onSuccess("default"));
+                }
+            }
+        });
+    }
 }

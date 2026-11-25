@@ -1,5 +1,6 @@
 package com.molly.agent;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -121,6 +122,20 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
         }
     };
 
+    private final androidx.activity.result.ActivityResultLauncher<Intent> schedulerLauncher =
+            registerForActivityResult(new androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult(), result -> {
+                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                    String targetThreadId = result.getData().getStringExtra(ScheduledTasksActivity.EXTRA_OPEN_SESSION_ID);
+                    if (targetThreadId != null && !targetThreadId.isEmpty()) {
+                        stopPolling();
+                        apiClient.switchSession(targetThreadId);
+                        messageAdapter.setItems(new ArrayList<>());
+                        Toast.makeText(this, "Membuka sesi eksekusi tugas...", Toast.LENGTH_SHORT).show();
+                        fetchLatestMessages(true);
+                    }
+                }
+            });
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -224,6 +239,14 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
             updateTabUi();
             loadDrawerSessions();
         });
+
+        View btnDrawerScheduler = findViewById(R.id.btnDrawerScheduler);
+        if (btnDrawerScheduler != null) {
+            btnDrawerScheduler.setOnClickListener(v -> {
+                drawerLayout.closeDrawers();
+                schedulerLauncher.launch(new Intent(this, ScheduledTasksActivity.class));
+            });
+        }
 
         View btnDrawerStatus = findViewById(R.id.btnDrawerStatus);
         if (btnDrawerStatus != null) {

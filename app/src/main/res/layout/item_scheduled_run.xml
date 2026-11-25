@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="8dp"
+    android:layout_marginVertical="4dp"
+    android:background="@drawable/bg_tool_call_card"
+    android:backgroundTint="#1A1E24"
+    android:orientation="vertical"
+    android:padding="12dp">
+
+    <!-- Top Row: Status Badge, Trigger, and Time -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <!-- Status Badge -->
+        <TextView
+            android:id="@+id/tvRunStatusBadge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_action_pill"
+            android:backgroundTint="#2610B981"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="2dp"
+            android:text="Selesai"
+            android:textColor="@color/status_green"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <!-- Trigger Label -->
+        <TextView
+            android:id="@+id/tvRunTrigger"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="⚡ Manual"
+            android:textColor="#9CA3AF"
+            android:textSize="11sp" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <!-- Scheduled / Executed Time -->
+        <TextView
+            android:id="@+id/tvRunTime"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="2026-11-25 09:00"
+            android:textColor="#6B7280"
+            android:textSize="11sp" />
+    </LinearLayout>
+
+    <!-- Error message if present -->
+    <TextView
+        android:id="@+id/tvRunError"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:background="@drawable/bg_code_block"
+        android:backgroundTint="#26EF4444"
+        android:padding="6dp"
+        android:text="Kesalahan eksekusi"
+        android:textColor="@color/status_red"
+        android:textSize="11sp"
+        android:visibility="gone" />
+
+    <!-- Bottom Row: Session Button if available -->
+    <LinearLayout
+        android:id="@+id/llRunSessionAction"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="end|center_vertical"
+        android:orientation="horizontal"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/btnOpenRunSession"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_action_pill"
+            android:backgroundTint="#2638BDF8"
+            android:clickable="true"
+            android:focusable="true"
+            android:paddingHorizontal="10dp"
+            android:paddingVertical="4dp"
+            android:text="💬 Buka Sesi Obrolan ❯"
+            android:textColor="#38BDF8"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+</LinearLayout>
