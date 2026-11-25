@@ -50,6 +50,11 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
     private EditText etMessage;
     private FloatingActionButton btnSend;
 
+    // Conversation Reading Failed / Reread Banner (Gambar 2)
+    private View llRereadBanner;
+    private TextView tvRereadErrorMsg;
+    private TextView btnRereadConversation;
+
     // Action pills seperti Gambar 2
     private TextView btnSelectAgent;
     private TextView btnSelectApproval;
@@ -143,6 +148,14 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
         btnSelectAgent = findViewById(R.id.btnSelectAgent);
         btnSelectApproval = findViewById(R.id.btnSelectApproval);
         btnSelectModel = findViewById(R.id.btnSelectModel);
+
+        // Banner Reread Conversation (Gambar 2)
+        llRereadBanner = findViewById(R.id.llRereadBanner);
+        tvRereadErrorMsg = findViewById(R.id.tvRereadErrorMsg);
+        btnRereadConversation = findViewById(R.id.btnRereadConversation);
+        if (btnRereadConversation != null) {
+            btnRereadConversation.setOnClickListener(v -> rereadConversation());
+        }
 
         // Inisialisasi komponen Drawer
         btnDrawerNewSession = findViewById(R.id.btnDrawerNewSession);
@@ -645,10 +658,27 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
         });
     }
 
+    private void rereadConversation() {
+        if (btnRereadConversation != null) {
+            btnRereadConversation.setText("Membaca ulang...");
+            btnRereadConversation.setEnabled(false);
+        }
+        startThinking();
+        fetchLatestMessages(true);
+    }
+
     private void fetchLatestMessages(boolean scrollToBottom) {
         apiClient.fetchSessionDisplayItems(new MollyApiClient.ApiCallback<List<ChatDisplayItem>>() {
             @Override
             public void onSuccess(List<ChatDisplayItem> list) {
+                if (btnRereadConversation != null) {
+                    btnRereadConversation.setText("Reread conversation");
+                    btnRereadConversation.setEnabled(true);
+                }
+                if (llRereadBanner != null) {
+                    llRereadBanner.setVisibility(View.GONE);
+                }
+
                 if (list != null && !list.isEmpty()) {
                     ChatDisplayItem lastItem = list.get(list.size() - 1);
                     boolean isProcessing = false;
@@ -673,7 +703,14 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
 
             @Override
             public void onError(String error) {
-                // Abaikan error jaringan sementara saat polling
+                if (btnRereadConversation != null) {
+                    btnRereadConversation.setText("Reread conversation");
+                    btnRereadConversation.setEnabled(true);
+                }
+                // Tampilkan banner "Conversation reading failed, please try again. [Reread conversation]"
+                if (llRereadBanner != null) {
+                    llRereadBanner.setVisibility(View.VISIBLE);
+                }
             }
         });
     }

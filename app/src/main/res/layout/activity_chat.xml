@@ -152,6 +152,44 @@
                 android:textStyle="italic" />
         </LinearLayout>
 
+        <!-- Conversation Reading Failed / Reread Banner (Gambar 2) -->
+        <LinearLayout
+            android:id="@+id/llRereadBanner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="12dp"
+            android:layout_marginBottom="4dp"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:paddingHorizontal="10dp"
+            android:paddingVertical="6dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/tvRereadErrorMsg"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Conversation reading failed, please try again."
+                android:textColor="#9CA3AF"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/btnRereadConversation"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/bg_action_pill"
+                android:backgroundTint="#1A38BDF8"
+                android:clickable="true"
+                android:focusable="true"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="3dp"
+                android:text="Reread conversation"
+                android:textColor="#38BDF8"
+                android:textSize="12sp"
+                android:textStyle="normal" />
+        </LinearLayout>
+
         <!-- Input Container -->
         <LinearLayout
             android:id="@+id/llInputContainer"

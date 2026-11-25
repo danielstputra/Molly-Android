@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="6dp"
+    android:layout_marginVertical="4dp"
+    android:background="@drawable/bg_tool_call_card"
+    android:backgroundTint="#13161A"
+    android:orientation="vertical"
+    android:padding="8dp">
+
+    <!-- Group Header (Clickable for Expand / Collapse) -->
+    <LinearLayout
+        android:id="@+id/llGroupHeader"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="4dp"
+        android:paddingVertical="4dp">
+
+        <TextView
+            android:id="@+id/tvGroupIcon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="⚛"
+            android:textColor="#E5E7EB"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/tvGroupTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="3 tools called · Cari pesan sejarah · Cari isi file"
+            android:textColor="#E5E7EB"
+            android:textSize="12sp"
+            android:textStyle="normal" />
+
+        <ImageView
+            android:id="@+id/ivGroupChevron"
+            android:layout_width="14dp"
+            android:layout_height="14dp"
+            android:layout_marginStart="6dp"
+            android:contentDescription="Expand/Collapse"
+            android:src="@drawable/ic_chevron_down"
+            android:tint="#9CA3AF" />
+    </LinearLayout>
+
+    <!-- Sub-tools Container with Vertical Guide Line (Tree view) -->
+    <LinearLayout
+        android:id="@+id/llGroupBody"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="14dp"
+        android:layout_marginTop="6dp"
+        android:orientation="horizontal"
+        android:visibility="gone">
+
+        <!-- Vertical branch line like Molly Web -->
+        <View
+            android:layout_width="2dp"
+            android:layout_height="match_parent"
+            android:background="#374151" />
+
+        <!-- Sub-items list -->
+        <LinearLayout
+            android:id="@+id/llSubToolsContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:orientation="vertical" />
+    </LinearLayout>
+
+</LinearLayout>

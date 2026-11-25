@@ -53,7 +53,10 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     @Override
     public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         LayoutInflater inflater = LayoutInflater.from(parent.getContext());
-        if (viewType == ChatDisplayItem.TYPE_TOOL_CALL) {
+        if (viewType == ChatDisplayItem.TYPE_TOOL_GROUP) {
+            View view = inflater.inflate(R.layout.item_chat_tool_group, parent, false);
+            return new ToolGroupViewHolder(view);
+        } else if (viewType == ChatDisplayItem.TYPE_TOOL_CALL) {
             View view = inflater.inflate(R.layout.item_chat_tool_call, parent, false);
             return new ToolCallViewHolder(view);
         } else if (viewType == ChatDisplayItem.TYPE_THINKING) {
@@ -71,6 +74,8 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 
         if (holder instanceof MessageViewHolder) {
             ((MessageViewHolder) holder).bind(item);
+        } else if (holder instanceof ToolGroupViewHolder) {
+            ((ToolGroupViewHolder) holder).bind(item, approvalListener);
         } else if (holder instanceof ToolCallViewHolder) {
             ((ToolCallViewHolder) holder).bind(item, approvalListener);
         } else if (holder instanceof ThinkingViewHolder) {
@@ -129,7 +134,110 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     }
 
     // ==========================================
-    // View Holder: Tool Machine Call (BaseToolCall)
+    // View Holder: Grouped Tool Calls (Accordion Tree - Gambar 3)
+    // ==========================================
+    static class ToolGroupViewHolder extends RecyclerView.ViewHolder {
+        View llGroupHeader;
+        TextView tvGroupIcon;
+        TextView tvGroupTitle;
+        ImageView ivGroupChevron;
+        View llGroupBody;
+        LinearLayout llSubToolsContainer;
+
+        public ToolGroupViewHolder(@NonNull View itemView) {
+            super(itemView);
+            llGroupHeader = itemView.findViewById(R.id.llGroupHeader);
+            tvGroupIcon = itemView.findViewById(R.id.tvGroupIcon);
+            tvGroupTitle = itemView.findViewById(R.id.tvGroupTitle);
+            ivGroupChevron = itemView.findViewById(R.id.ivGroupChevron);
+            llGroupBody = itemView.findViewById(R.id.llGroupBody);
+            llSubToolsContainer = itemView.findViewById(R.id.llSubToolsContainer);
+        }
+
+        public void bind(ChatDisplayItem item, OnToolApprovalListener listener) {
+            Context ctx = itemView.getContext();
+            tvGroupTitle.setText(item.getGroupSummaryTitle());
+
+            // Expand / Collapse State
+            boolean expanded = item.isExpanded();
+            llGroupBody.setVisibility(expanded ? View.VISIBLE : View.GONE);
+            ivGroupChevron.setImageResource(expanded ? R.drawable.ic_chevron_up : R.drawable.ic_chevron_down);
+
+            llGroupHeader.setOnClickListener(v -> {
+                boolean nextState = !item.isExpanded();
+                item.setExpanded(nextState);
+                llGroupBody.setVisibility(nextState ? View.VISIBLE : View.GONE);
+                ivGroupChevron.setImageResource(nextState ? R.drawable.ic_chevron_up : R.drawable.ic_chevron_down);
+            });
+
+            // Dynamically populate sub-tools
+            llSubToolsContainer.removeAllViews();
+            LayoutInflater inflater = LayoutInflater.from(ctx);
+
+            for (ChatDisplayItem.SubToolCall sub : item.getSubTools()) {
+                View subView = inflater.inflate(R.layout.item_sub_tool_call, llSubToolsContainer, false);
+                TextView tvIcon = subView.findViewById(R.id.tvSubToolIcon);
+                TextView tvName = subView.findViewById(R.id.tvSubToolName);
+                TextView tvArgs = subView.findViewById(R.id.tvSubToolArgs);
+                TextView tvBadge = subView.findViewById(R.id.tvSubToolBadge);
+                TextView tvOutput = subView.findViewById(R.id.tvSubToolOutputSummary);
+                View llApproval = subView.findViewById(R.id.llSubToolApproval);
+                TextView btnApprove = subView.findViewById(R.id.btnSubToolApprove);
+                TextView btnReject = subView.findViewById(R.id.btnSubToolReject);
+
+                tvIcon.setText(sub.getToolIcon());
+                tvName.setText(sub.toolName);
+                tvArgs.setText(sub.getSummaryArgs());
+
+                String summaryOut = sub.getSummaryOutput();
+                if ("completed".equalsIgnoreCase(sub.status)) {
+                    if ("No matches found".equalsIgnoreCase(summaryOut)) {
+                        tvBadge.setText("✕");
+                        tvBadge.setTextColor(0xFF9CA3AF);
+                    } else if (summaryOut.contains("item") || summaryOut.length() < 15) {
+                        tvBadge.setText("1item");
+                        tvBadge.setTextColor(0xFF9CA3AF);
+                    } else {
+                        tvBadge.setText("✓");
+                        tvBadge.setTextColor(ctx.getColor(R.color.status_green));
+                    }
+                } else if ("in_progress".equalsIgnoreCase(sub.status)) {
+                    tvBadge.setText("...");
+                    tvBadge.setTextColor(ctx.getColor(R.color.primary_gold));
+                } else if ("waiting".equalsIgnoreCase(sub.status)) {
+                    tvBadge.setText("Menunggu izin");
+                    tvBadge.setTextColor(0xFFF59E0B);
+                } else {
+                    tvBadge.setText("✕");
+                    tvBadge.setTextColor(ctx.getColor(R.color.status_red));
+                }
+
+                if (!summaryOut.isEmpty()) {
+                    tvOutput.setVisibility(View.VISIBLE);
+                    tvOutput.setText(summaryOut);
+                } else {
+                    tvOutput.setVisibility(View.GONE);
+                }
+
+                if ("waiting".equalsIgnoreCase(sub.status)) {
+                    llApproval.setVisibility(View.VISIBLE);
+                    btnApprove.setOnClickListener(v -> {
+                        if (listener != null) listener.onApprove(item);
+                    });
+                    btnReject.setOnClickListener(v -> {
+                        if (listener != null) listener.onReject(item);
+                    });
+                } else {
+                    llApproval.setVisibility(View.GONE);
+                }
+
+                llSubToolsContainer.addView(subView);
+            }
+        }
+    }
+
+    // ==========================================
+    // View Holder: Tool Machine Call (Fallback)
     // ==========================================
     static class ToolCallViewHolder extends RecyclerView.ViewHolder {
         View llToolHeader;
@@ -177,7 +285,6 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 
             String status = item.getToolStatus() != null ? item.getToolStatus().toLowerCase() : "completed";
 
-            // Atur status icon, badge, dan loading
             if ("in_progress".equals(status) || "running".equals(status) || "calling".equals(status)) {
                 pbToolLoading.setVisibility(View.VISIBLE);
                 ivToolStatusIcon.setVisibility(View.GONE);
@@ -208,7 +315,6 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                 tvToolStatusSummary.setTextColor(ctx.getColor(R.color.status_red));
                 llApprovalContainer.setVisibility(View.GONE);
             } else {
-                // Completed / Success
                 pbToolLoading.setVisibility(View.GONE);
                 ivToolStatusIcon.setVisibility(View.VISIBLE);
                 ivToolStatusIcon.setImageResource(R.drawable.ic_tool_check);
@@ -220,7 +326,6 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                 llApprovalContainer.setVisibility(View.GONE);
             }
 
-            // Command panel
             if (item.getToolArgs() != null && !item.getToolArgs().trim().isEmpty()) {
                 llCommandContainer.setVisibility(View.VISIBLE);
                 tvToolCommand.setText(item.getToolArgs().trim());
@@ -228,7 +333,6 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                 llCommandContainer.setVisibility(View.GONE);
             }
 
-            // Output panel
             if (item.getToolOutput() != null && !item.getToolOutput().trim().isEmpty()) {
                 llOutputContainer.setVisibility(View.VISIBLE);
                 tvToolOutput.setText(item.getToolOutput().trim());
@@ -236,7 +340,6 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                 llOutputContainer.setVisibility(View.GONE);
             }
 
-            // Accordion expand/collapse
             boolean expanded = item.isExpanded();
             llToolBody.setVisibility(expanded ? View.VISIBLE : View.GONE);
             ivToolChevron.setImageResource(expanded ? R.drawable.ic_chevron_up : R.drawable.ic_chevron_down);
@@ -248,7 +351,6 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                 ivToolChevron.setImageResource(nextState ? R.drawable.ic_chevron_up : R.drawable.ic_chevron_down);
             });
 
-            // Action Approval
             btnApproveTool.setOnClickListener(v -> {
                 if (listener != null) listener.onApprove(item);
             });
@@ -260,22 +362,34 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     }
 
     // ==========================================
-    // View Holder: Thinking / Reasoning Box (CoT)
+    // View Holder: Thinking / Reasoning Box (Gambar 3)
     // ==========================================
     static class ThinkingViewHolder extends RecyclerView.ViewHolder {
         View llThinkingHeader;
+        TextView tvThinkingTitle;
         ImageView ivThinkingChevron;
         TextView tvThinkingContent;
 
         public ThinkingViewHolder(@NonNull View itemView) {
             super(itemView);
             llThinkingHeader = itemView.findViewById(R.id.llThinkingHeader);
+            tvThinkingTitle = itemView.findViewById(R.id.tvThinkingTitle);
             ivThinkingChevron = itemView.findViewById(R.id.ivThinkingChevron);
             tvThinkingContent = itemView.findViewById(R.id.tvThinkingContent);
         }
 
         public void bind(ChatDisplayItem item) {
-            tvThinkingContent.setText(item.getText());
+            String content = item.getText() != null ? item.getText().trim() : "";
+            tvThinkingContent.setText(content);
+
+            // Tentukan label durasi / status thinking seperti di Molly Web (Gambar 3)
+            if (content.isEmpty()) {
+                tvThinkingTitle.setText("Sedang berpikir...");
+            } else {
+                int words = content.split("\\s+").length;
+                int estimatedSec = Math.max(3, Math.min(60, words / 8));
+                tvThinkingTitle.setText("Memakan waktu " + estimatedSec + "s");
+            }
 
             boolean expanded = item.isExpanded();
             tvThinkingContent.setVisibility(expanded ? View.VISIBLE : View.GONE);

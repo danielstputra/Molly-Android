@@ -3,59 +3,56 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginHorizontal="6dp"
-    android:layout_marginVertical="4dp"
+    android:layout_marginVertical="3dp"
     android:background="@drawable/bg_tool_call_card"
-    android:backgroundTint="#16181C"
+    android:backgroundTint="#13161A"
     android:orientation="vertical"
-    android:padding="10dp">
+    android:padding="8dp">
 
-    <!-- Thinking Header -->
+    <!-- Thinking Header (Accordion Clickable) -->
     <LinearLayout
         android:id="@+id/llThinkingHeader"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:background="?selectableItemBackground"
         android:clickable="true"
         android:focusable="true"
         android:gravity="center_vertical"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:paddingHorizontal="4dp"
+        android:paddingVertical="4dp">
 
         <TextView
+            android:id="@+id/tvThinkingTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="🧠"
-            android:textSize="14sp" />
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:layout_weight="1"
-            android:text="Proses Berpikir (Reasoning)"
-            android:textColor="@color/text_muted"
+            android:text="Memakan waktu 37s"
+            android:textColor="#9CA3AF"
             android:textSize="12sp"
-            android:textStyle="italic" />
+            android:fontFamily="sans-serif" />
 
         <ImageView
             android:id="@+id/ivThinkingChevron"
-            android:layout_width="16dp"
-            android:layout_height="16dp"
-            android:contentDescription="Expand"
-            android:src="@drawable/ic_chevron_down" />
+            android:layout_width="14dp"
+            android:layout_height="14dp"
+            android:layout_marginStart="4dp"
+            android:contentDescription="Expand/Collapse"
+            android:src="@drawable/ic_chevron_down"
+            android:tint="#9CA3AF" />
     </LinearLayout>
 
-    <!-- Thinking Body Text -->
+    <!-- Thinking Body Text (Hidden by default, open on click) -->
     <TextView
         android:id="@+id/tvThinkingContent"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="6dp"
         android:background="@drawable/bg_code_block"
         android:fontFamily="sans-serif"
         android:lineSpacingExtra="3dp"
         android:padding="8dp"
         android:text="Menganalisis permintaan pengguna..."
-        android:textColor="#B0B4BA"
+        android:textColor="#D1D5DB"
         android:textIsSelectable="true"
         android:textSize="12sp"
         android:visibility="gone" />

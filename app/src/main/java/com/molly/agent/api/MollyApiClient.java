@@ -933,7 +933,8 @@ public class MollyApiClient {
             if (data == null) return list;
 
             SimpleDateFormat sdf = new SimpleDateFormat("HH:mm", Locale.getDefault());
-            Map<String, ChatDisplayItem> toolCallsMap = new HashMap<>();
+            Map<String, ChatDisplayItem.SubToolCall> subToolCallsMap = new HashMap<>();
+            ChatDisplayItem currentToolGroup = null;
 
             for (JsonElement el : data) {
                 if (!el.isJsonObject()) continue;
@@ -947,6 +948,7 @@ public class MollyApiClient {
 
                 // Kasus 1: Pesan Pengguna (User Message)
                 if ("user".equalsIgnoreCase(role)) {
+                    currentToolGroup = null;
                     StringBuilder textBuilder = new StringBuilder();
                     if (item.has("content") && item.get("content").isJsonArray()) {
                         for (JsonElement c : item.getAsJsonArray("content")) {
@@ -990,23 +992,30 @@ public class MollyApiClient {
                         }
                     }
 
-                    ChatDisplayItem toolItem = ChatDisplayItem.createToolCall(
+                    String callIdKey = item.has("call_id") ? item.get("call_id").getAsString() : itemId;
+
+                    ChatDisplayItem.SubToolCall sub = new ChatDisplayItem.SubToolCall(
                             itemId,
                             toolId,
                             ToolNameHelper.getDisplayName(toolId),
                             args,
                             output,
                             status,
-                            timeStr,
                             turnId,
                             waitpointId
                     );
-                    list.add(toolItem);
-                    toolCallsMap.put(itemId, toolItem);
+                    subToolCallsMap.put(callIdKey, sub);
+                    subToolCallsMap.put(itemId, sub);
+
+                    if (currentToolGroup == null || (!list.isEmpty() && list.get(list.size() - 1) != currentToolGroup)) {
+                        currentToolGroup = ChatDisplayItem.createToolGroup(itemId + "_group", timeStr, turnId);
+                        list.add(currentToolGroup);
+                    }
+                    currentToolGroup.addSubTool(sub);
                 }
                 // Kasus 3: Hasil Pemanggilan Alat Mesin (Function Call Output)
                 else if ("function_call_output".equalsIgnoreCase(type) || "tool_result".equalsIgnoreCase(type)) {
-                    String callId = item.has("call_id") ? item.get("call_id").getAsString() : "";
+                    String callId = item.has("call_id") ? item.get("call_id").getAsString() : itemId;
                     String outputContent = "";
                     if (item.has("content")) {
                         outputContent = item.get("content").isJsonPrimitive() ? item.get("content").getAsString() : item.get("content").toString();
@@ -1014,30 +1023,29 @@ public class MollyApiClient {
                         outputContent = item.get("output").isJsonPrimitive() ? item.get("output").getAsString() : item.get("output").toString();
                     }
 
-                    if (toolCallsMap.containsKey(callId)) {
-                        ChatDisplayItem existing = toolCallsMap.get(callId);
+                    if (subToolCallsMap.containsKey(callId)) {
+                        ChatDisplayItem.SubToolCall existing = subToolCallsMap.get(callId);
                         if (existing != null) {
-                            existing.setToolOutput(outputContent);
+                            existing.output = outputContent;
                             if (item.has("status")) {
-                                existing.setToolStatus(item.get("status").getAsString());
+                                existing.status = item.get("status").getAsString();
                             } else {
-                                existing.setToolStatus("completed");
+                                existing.status = "completed";
                             }
                         }
-                    } else {
-                        // Tambahkan sebagai standalone output jika belum terhubung
-                        ChatDisplayItem toolItem = ChatDisplayItem.createToolCall(
+                    } else if (currentToolGroup != null) {
+                        ChatDisplayItem.SubToolCall sub = new ChatDisplayItem.SubToolCall(
                                 itemId,
                                 "tool_result",
-                                "Hasil Alat Mesin",
+                                "Hasil Eksekusi",
                                 "",
                                 outputContent,
                                 "completed",
-                                timeStr,
                                 turnId,
                                 null
                         );
-                        list.add(toolItem);
+                        currentToolGroup.addSubTool(sub);
+                        subToolCallsMap.put(callId, sub);
                     }
                 }
                 // Kasus 4: Reasoning / Thought
