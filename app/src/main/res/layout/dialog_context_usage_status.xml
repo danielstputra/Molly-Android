@@ -1,0 +1,573 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_tool_call_card"
+    android:backgroundTint="#13161A"
+    android:orientation="vertical"
+    android:paddingHorizontal="16dp"
+    android:paddingTop="14dp"
+    android:paddingBottom="18dp">
+
+    <!-- Header: Status + Refresh Button -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Status"
+            android:textColor="#E2E8F0"
+            android:textSize="17sp"
+            android:textStyle="bold" />
+
+        <ProgressBar
+            android:id="@+id/pbStatusRefreshing"
+            style="?android:attr/progressBarStyleSmall"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:indeterminateTint="@color/primary_gold"
+            android:visibility="gone" />
+
+        <ImageView
+            android:id="@+id/btnRefreshStatus"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="?selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:contentDescription="Refresh Status"
+            android:focusable="true"
+            android:padding="6dp"
+            android:src="@drawable/ic_refresh" />
+    </LinearLayout>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- Card 1: Context Usage Overview -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_code_block"
+                android:backgroundTint="#1A1E24"
+                android:orientation="vertical"
+                android:padding="12dp">
+
+                <!-- Top Row: Percent & Summary -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/tvMainPercent"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="7%"
+                        android:textColor="#FFFFFF"
+                        android:textSize="26sp"
+                        android:textStyle="bold" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:layout_weight="1"
+                        android:gravity="end"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Context Usage"
+                            android:textColor="#9CA3AF"
+                            android:textSize="12sp" />
+
+                        <TextView
+                            android:id="@+id/tvContextUsageRatio"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="6dp"
+                            android:text="16.9K / 256K"
+                            android:textColor="#E5E7EB"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Progress Bar -->
+                <ProgressBar
+                    android:id="@+id/pbContextUsage"
+                    style="?android:attr/progressBarStyleHorizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="6dp"
+                    android:layout_marginTop="8dp"
+                    android:max="100"
+                    android:progress="7"
+                    android:progressTint="#38BDF8" />
+
+                <!-- Bottom Metrics: Total Model Usage & Cache Hit Ratio -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:orientation="horizontal">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Total Model Usage"
+                            android:textColor="#9CA3AF"
+                            android:textSize="11sp" />
+
+                        <TextView
+                            android:id="@+id/tvTotalModelUsage"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="169K"
+                            android:textColor="#FFFFFF"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="1dp"
+                        android:layout_height="match_parent"
+                        android:layout_marginHorizontal="8dp"
+                        android:background="#2E3440" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Cumulative Cache Hit Ratio"
+                            android:textColor="#9CA3AF"
+                            android:textSize="11sp" />
+
+                        <TextView
+                            android:id="@+id/tvCacheHitRatio"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="85%"
+                            android:textColor="#FFFFFF"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Card 2: Model Stats -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_code_block"
+                android:backgroundTint="#1A1E24"
+                android:orientation="vertical"
+                android:padding="12dp">
+
+                <!-- Model Header -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/tvModelName"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:ellipsize="middle"
+                        android:maxLines="1"
+                        android:text="ag-tools:gemini-3.8-flash-medium"
+                        android:textColor="#FFFFFF"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvCallCount"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:background="@drawable/bg_action_pill"
+                        android:backgroundTint="#2638BDF8"
+                        android:paddingHorizontal="8dp"
+                        android:paddingVertical="2dp"
+                        android:text="11 calls"
+                        android:textColor="#38BDF8"
+                        android:textSize="11sp" />
+                </LinearLayout>
+
+                <!-- Model Stats Grid (3 Kolom) -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:orientation="horizontal">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1.2"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Input / Output"
+                            android:textColor="#9CA3AF"
+                            android:textSize="11sp" />
+
+                        <TextView
+                            android:id="@+id/tvInputOutput"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="166K / 2.71K"
+                            android:textColor="#FFFFFF"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1.1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Cache"
+                            android:textColor="#9CA3AF"
+                            android:textSize="11sp" />
+
+                        <TextView
+                            android:id="@+id/tvCacheStats"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="92.2K · 85%"
+                            android:textColor="#FFFFFF"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="0.9"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Reasoning"
+                            android:textColor="#9CA3AF"
+                            android:textSize="11sp" />
+
+                        <TextView
+                            android:id="@+id/tvReasoningStats"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="2.07K"
+                            android:textColor="#FFFFFF"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Card 3: Recent Context Composition -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_code_block"
+                android:backgroundTint="#1A1E24"
+                android:orientation="vertical"
+                android:padding="12dp">
+
+                <!-- Composition Header -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Recent Context Composition"
+                        android:textColor="#FFFFFF"
+                        android:textSize="13sp"
+                        android:textStyle="normal" />
+
+                    <ImageView
+                        android:id="@+id/btnCompressContext"
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:background="?selectableItemBackgroundBorderless"
+                        android:clickable="true"
+                        android:contentDescription="Kompres Konteks"
+                        android:focusable="true"
+                        android:padding="5dp"
+                        android:src="@drawable/ic_compress" />
+                </LinearLayout>
+
+                <!-- Multi-segment Stacked Horizontal Progress Bar -->
+                <LinearLayout
+                    android:id="@+id/llCompositionBar"
+                    android:layout_width="match_parent"
+                    android:layout_height="8dp"
+                    android:layout_marginTop="8dp"
+                    android:background="#2E3440"
+                    android:orientation="horizontal">
+
+                    <View
+                        android:id="@+id/segSystem"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="55"
+                        android:background="#6366F1" />
+
+                    <View
+                        android:id="@+id/segTools"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="30"
+                        android:background="#EAB308" />
+
+                    <View
+                        android:id="@+id/segContent"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="10"
+                        android:background="#06B6D4" />
+
+                    <View
+                        android:id="@+id/segToolMsg"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="5"
+                        android:background="#A855F7" />
+                </LinearLayout>
+
+                <!-- Composition Legend (Grid 2x2) -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:orientation="vertical">
+
+                    <!-- Baris 1: Perintah Sistem & Definisi Alat -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <View
+                                android:layout_width="8dp"
+                                android:layout_height="8dp"
+                                android:background="#6366F1" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="6dp"
+                                android:text="Perintah sistem"
+                                android:textColor="#9CA3AF"
+                                android:textSize="11sp" />
+
+                            <TextView
+                                android:id="@+id/tvSystemTokens"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginEnd="8dp"
+                                android:layout_weight="1"
+                                android:gravity="end"
+                                android:text="10K"
+                                android:textColor="#FFFFFF"
+                                android:textSize="11sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:layout_weight="1"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <View
+                                android:layout_width="8dp"
+                                android:layout_height="8dp"
+                                android:background="#EAB308" />
+
+                            <TextView
+                                android:id="@+id/tvToolsCountLabel"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="6dp"
+                                android:text="Definisi alat (22)"
+                                android:textColor="#9CA3AF"
+                                android:textSize="11sp" />
+
+                            <TextView
+                                android:id="@+id/tvToolsTokens"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:gravity="end"
+                                android:text="5.56K"
+                                android:textColor="#FFFFFF"
+                                android:textSize="11sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <!-- Baris 2: Pesan Konten & Pesan Alat -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:orientation="horizontal">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <View
+                                android:layout_width="8dp"
+                                android:layout_height="8dp"
+                                android:background="#06B6D4" />
+
+                            <TextView
+                                android:id="@+id/tvContentCountLabel"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="6dp"
+                                android:text="Pesan konten (17)"
+                                android:textColor="#9CA3AF"
+                                android:textSize="11sp" />
+
+                            <TextView
+                                android:id="@+id/tvContentTokens"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginEnd="8dp"
+                                android:layout_weight="1"
+                                android:gravity="end"
+                                android:text="815"
+                                android:textColor="#FFFFFF"
+                                android:textSize="11sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:layout_weight="1"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <View
+                                android:layout_width="8dp"
+                                android:layout_height="8dp"
+                                android:background="#A855F7" />
+
+                            <TextView
+                                android:id="@+id/tvToolMsgCountLabel"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="6dp"
+                                android:text="Pesan alat (7)"
+                                android:textColor="#9CA3AF"
+                                android:textSize="11sp" />
+
+                            <TextView
+                                android:id="@+id/tvToolMsgTokens"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:gravity="end"
+                                android:text="399"
+                                android:textColor="#FFFFFF"
+                                android:textSize="11sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Footer: Recent Call -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Recent Call"
+                    android:textColor="#9CA3AF"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:id="@+id/tvRecentCallTokens"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Input 15.5K · Output 685"
+                    android:textColor="#FFFFFF"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+        </LinearLayout>
+    </ScrollView>
+
+</LinearLayout>

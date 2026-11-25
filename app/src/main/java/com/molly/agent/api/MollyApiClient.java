@@ -1184,4 +1184,79 @@ public class MollyApiClient {
             }
         });
     }
+
+    /**
+     * Mengambil status monitoring penggunaan token & konteks sesi aktif dari backend Molly.
+     */
+    public void fetchContextUsage(ApiCallback<com.molly.agent.model.ContextUsageInfo> callback) {
+        if (!isConfigured() || sessionId == null || sessionId.isEmpty() || sessionId.equals("molly-guest-session")) {
+            callback.onError("Sesi belum aktif");
+            return;
+        }
+
+        String endpoint = serverUrl + "/api/v1/agents/sessions/" + sessionId + "/state?include_relations=false";
+        Request request = new Request.Builder()
+                .url(endpoint)
+                .addHeader("Authorization", "Bearer " + token)
+                .addHeader("Bypass-Tunnel-Reminder", "true")
+                .get()
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                mainHandler.post(() -> callback.onError(e.getMessage()));
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                if (!response.isSuccessful()) {
+                    mainHandler.post(() -> callback.onError("Status: " + response.code()));
+                    return;
+                }
+                try {
+                    String bodyStr = response.body() != null ? response.body().string() : "{}";
+                    JsonObject obj = JsonParser.parseString(bodyStr).getAsJsonObject();
+                    com.molly.agent.model.ContextUsageInfo info = com.molly.agent.model.ContextUsageInfo.parse(obj);
+                    mainHandler.post(() -> callback.onSuccess(info));
+                } catch (Exception e) {
+                    mainHandler.post(() -> callback.onError("Gagal parse context usage: " + e.getMessage()));
+                }
+            }
+        });
+    }
+
+    /**
+     * Meminta server Molly untuk mengompresi konteks riwayat percakapan.
+     */
+    public void compressContext(ApiCallback<Boolean> callback) {
+        if (!isConfigured() || sessionId == null || sessionId.isEmpty()) {
+            callback.onError("Sesi belum aktif");
+            return;
+        }
+
+        String endpoint = serverUrl + "/api/v1/agents/sessions/" + sessionId + "/compress";
+        Request request = new Request.Builder()
+                .url(endpoint)
+                .addHeader("Authorization", "Bearer " + token)
+                .addHeader("Bypass-Tunnel-Reminder", "true")
+                .post(RequestBody.create(new byte[0], null))
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                mainHandler.post(() -> callback.onError(e.getMessage()));
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                boolean ok = response.isSuccessful();
+                mainHandler.post(() -> {
+                    if (ok) callback.onSuccess(true);
+                    else callback.onError("Gagal kompresi: status " + response.code());
+                });
+            }
+        });
+    }
 }

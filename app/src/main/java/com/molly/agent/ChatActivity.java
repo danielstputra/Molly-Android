@@ -55,6 +55,11 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
     private TextView tvRereadErrorMsg;
     private TextView btnRereadConversation;
 
+    // Status Monitoring Token & Context Usage
+    private View btnContextStatus;
+    private TextView tvToolbarContextPercent;
+    private com.molly.agent.model.ContextUsageInfo currentContextUsageInfo = new com.molly.agent.model.ContextUsageInfo();
+
     // Action pills seperti Gambar 2
     private TextView btnSelectAgent;
     private TextView btnSelectApproval;
@@ -157,6 +162,13 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
             btnRereadConversation.setOnClickListener(v -> rereadConversation());
         }
 
+        // Status Monitoring Token & Context Usage
+        btnContextStatus = findViewById(R.id.btnContextStatus);
+        tvToolbarContextPercent = findViewById(R.id.tvToolbarContextPercent);
+        if (btnContextStatus != null) {
+            btnContextStatus.setOnClickListener(v -> showContextUsageDialog());
+        }
+
         // Inisialisasi komponen Drawer
         btnDrawerNewSession = findViewById(R.id.btnDrawerNewSession);
         tabActiveSessions = findViewById(R.id.tabActiveSessions);
@@ -213,6 +225,14 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
             loadDrawerSessions();
         });
 
+        View btnDrawerStatus = findViewById(R.id.btnDrawerStatus);
+        if (btnDrawerStatus != null) {
+            btnDrawerStatus.setOnClickListener(v -> {
+                drawerLayout.closeDrawers();
+                showContextUsageDialog();
+            });
+        }
+
         View btnDrawerServerConfig = findViewById(R.id.btnDrawerServerConfig);
         if (btnDrawerServerConfig != null) {
             btnDrawerServerConfig.setOnClickListener(v -> {
@@ -249,6 +269,9 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
 
         // Load awal riwayat percakapan sesi
         fetchLatestMessages(true);
+
+        // Ambil awal monitoring status token & context usage
+        refreshContextUsageSilently();
 
         // Sinkronkan daftar sesi dengan server di background
         syncServerSessions();
@@ -721,6 +744,55 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
 
     private void stopThinking() {
         llThinking.setVisibility(View.GONE);
+        refreshContextUsageSilently();
+    }
+
+    private void showContextUsageDialog() {
+        com.molly.agent.ui.ContextUsageDialogHelper.show(this, apiClient, currentContextUsageInfo, info -> {
+            updateContextUsageToolbar(info);
+        });
+    }
+
+    private void updateContextUsageToolbar(com.molly.agent.model.ContextUsageInfo info) {
+        if (info == null) return;
+        if (tvToolbarContextPercent != null) {
+            tvToolbarContextPercent.setText(info.percent + "%");
+            if (info.percent >= 90) {
+                tvToolbarContextPercent.setTextColor(0xFFEF4444);
+            } else if (info.percent >= 75) {
+                tvToolbarContextPercent.setTextColor(0xFFF59E0B);
+            } else {
+                tvToolbarContextPercent.setTextColor(0xFF38BDF8);
+            }
+        }
+        TextView tvDrawerStatusBadge = findViewById(R.id.tvDrawerStatusBadge);
+        if (tvDrawerStatusBadge != null) {
+            tvDrawerStatusBadge.setText(info.percent + "% ❯");
+            if (info.percent >= 90) {
+                tvDrawerStatusBadge.setTextColor(0xFFEF4444);
+            } else if (info.percent >= 75) {
+                tvDrawerStatusBadge.setTextColor(0xFFF59E0B);
+            } else {
+                tvDrawerStatusBadge.setTextColor(0xFF38BDF8);
+            }
+        }
+    }
+
+    private void refreshContextUsageSilently() {
+        apiClient.fetchContextUsage(new MollyApiClient.ApiCallback<com.molly.agent.model.ContextUsageInfo>() {
+            @Override
+            public void onSuccess(com.molly.agent.model.ContextUsageInfo result) {
+                if (result != null) {
+                    currentContextUsageInfo = result;
+                    updateContextUsageToolbar(result);
+                }
+            }
+
+            @Override
+            public void onError(String error) {
+                // Abaikan jika offline / sementara
+            }
+        });
     }
 
     private void startPolling() {

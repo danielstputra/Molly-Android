@@ -74,6 +74,37 @@
                 </LinearLayout>
             </LinearLayout>
 
+            <!-- Tombol Status Token & Context Usage (Pill Status) -->
+            <LinearLayout
+                android:id="@+id/btnContextStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_action_pill"
+                android:backgroundTint="#2638BDF8"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="8dp">
+
+                <TextView
+                    android:id="@+id/tvToolbarContextPercent"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="--%"
+                    android:textColor="#38BDF8"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
+
+                <ImageView
+                    android:layout_width="12dp"
+                    android:layout_height="12dp"
+                    android:layout_marginStart="4dp"
+                    android:src="@drawable/ic_chevron_down"
+                    android:tint="#38BDF8" />
+            </LinearLayout>
+
             <!-- Tombol Clear Chat / Bersihkan Chat -->
             <ImageView
                 android:id="@+id/btnClearChat"
