@@ -74,6 +74,7 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
     private TextView tvEmptySessions;
     private SessionDrawerAdapter drawerAdapter;
     private boolean showArchived = false;
+    private boolean isProgrammaticChange = false;
 
     private List<MollyApiClient.ModelItem> availableModels = new ArrayList<>();
     private List<MollyApiClient.AgentItem> availableAgents = new ArrayList<>();
@@ -245,6 +246,7 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
+                if (isProgrammaticChange) return;
                 if (s != null && s.length() > 0) {
                     int cursor = etMessage.getSelectionStart();
                     if (cursor > 0 && s.charAt(cursor - 1) == '@') {
@@ -581,13 +583,35 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
     }
 
     private void insertMentionIntoInput(String name) {
-        if (name == null || name.isEmpty()) return;
-        String current = etMessage.getText() != null ? etMessage.getText().toString() : "";
-        if (current.endsWith("@")) {
-            current = current.substring(0, current.length() - 1);
+        if (name == null || name.trim().isEmpty()) return;
+        isProgrammaticChange = true;
+        try {
+            android.text.Editable editable = etMessage.getText();
+            String mentionText = "@" + name.trim() + " ";
+
+            if (editable == null || editable.length() == 0) {
+                etMessage.setText(mentionText);
+                etMessage.setSelection(etMessage.getText().length());
+                return;
+            }
+
+            int cursor = etMessage.getSelectionStart();
+            if (cursor < 0) cursor = editable.length();
+
+            // Cari karakter '@' terdekat sebelum posisi kursor
+            String textBeforeCursor = editable.subSequence(0, cursor).toString();
+            int lastAt = textBeforeCursor.lastIndexOf('@');
+
+            if (lastAt >= 0) {
+                editable.replace(lastAt, cursor, mentionText);
+                etMessage.setSelection(lastAt + mentionText.length());
+            } else {
+                editable.insert(cursor, mentionText);
+                etMessage.setSelection(cursor + mentionText.length());
+            }
+        } finally {
+            isProgrammaticChange = false;
         }
-        etMessage.setText(current + "@" + name + " ");
-        etMessage.setSelection(etMessage.getText().length());
     }
 
     private void showModelPickerDialog() {

@@ -85,7 +85,13 @@ public class MentionPickerHelper {
                         String id = s.has("id") ? s.get("id").getAsString() : "";
                         String name = s.has("name") ? s.get("name").getAsString() : id;
                         String desc = s.has("description") ? s.get("description").getAsString() : "";
-                        MentionItem item = new MentionItem(id, name, desc, MentionItem.TYPE_SKILL, "🤹");
+                        String icon = "🤹";
+                        if (id.contains("image") || name.toLowerCase().contains("gambar")) icon = "🎨";
+                        else if (id.contains("mysql") || name.toLowerCase().contains("sql")) icon = "📊";
+                        else if (id.contains("knowledge") || name.toLowerCase().contains("pengetahuan")) icon = "📖";
+                        else if (id.contains("research") || name.toLowerCase().contains("riset")) icon = "🔍";
+                        else if (id.contains("chat") || name.toLowerCase().contains("percakapan")) icon = "🔲";
+                        MentionItem item = new MentionItem(id, name, desc, MentionItem.TYPE_SKILL, icon);
                         if (i == 0) {
                             item.showGroupHeader = true;
                             item.groupHeaderTitle = "Skills";
@@ -205,9 +211,14 @@ public class MentionPickerHelper {
             holder.tvDesc.setText(item.description);
             holder.tvBadge.setText(MentionItem.TYPE_AGENT.equals(item.type) ? "Agent" : "Skill");
 
-            holder.itemView.setOnClickListener(v -> {
+            View.OnClickListener clickListener = v -> {
                 if (listener != null) listener.onMentionSelected(item);
-            });
+            };
+
+            holder.itemView.setOnClickListener(clickListener);
+            if (holder.llMentionRow != null) {
+                holder.llMentionRow.setOnClickListener(clickListener);
+            }
         }
 
         @Override
@@ -217,6 +228,7 @@ public class MentionPickerHelper {
 
         static class ViewHolder extends RecyclerView.ViewHolder {
             TextView tvGroupHeader;
+            View llMentionRow;
             TextView tvIcon;
             TextView tvName;
             TextView tvDesc;
@@ -225,6 +237,7 @@ public class MentionPickerHelper {
             public ViewHolder(@NonNull View itemView) {
                 super(itemView);
                 tvGroupHeader = itemView.findViewById(R.id.tvMentionGroupHeader);
+                llMentionRow = itemView.findViewById(R.id.llMentionRow);
                 tvIcon = itemView.findViewById(R.id.tvMentionIcon);
                 tvName = itemView.findViewById(R.id.tvMentionName);
                 tvDesc = itemView.findViewById(R.id.tvMentionDesc);
