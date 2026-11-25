@@ -218,6 +218,10 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
 
         updateActionPillsUi();
 
+        // Inisialisasi awal model & agent dari cache lokal / default agar UI langsung responsif
+        availableModels = apiClient.getCachedOrFallbackModels();
+        availableAgents = apiClient.getCachedOrFallbackAgents();
+
         // Catat sesi awal di history
         sessionManager.recordOrUpdateSession(
                 apiClient.getSessionId(),
@@ -401,39 +405,16 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
     }
 
     private void showAgentPickerDialog() {
-        if (availableAgents.isEmpty()) {
-            android.app.ProgressDialog progress = new android.app.ProgressDialog(this);
-            progress.setMessage("Memuat daftar Agent dari server Molly...");
-            progress.setCancelable(true);
-            progress.show();
-
-            apiClient.fetchMetadata(new MollyApiClient.ApiCallback<MollyApiClient.MetadataResponse>() {
-                @Override
-                public void onSuccess(MollyApiClient.MetadataResponse result) {
-                    progress.dismiss();
-                    if (result.models != null && !result.models.isEmpty()) availableModels = result.models;
-                    if (result.agents != null && !result.agents.isEmpty()) availableAgents = result.agents;
-                    if (!availableAgents.isEmpty()) {
-                        showAgentPickerDialog();
-                    } else {
-                        Toast.makeText(ChatActivity.this, "Tidak ada agent yang tersedia di server", Toast.LENGTH_SHORT).show();
-                    }
-                }
-
-                @Override
-                public void onError(String error) {
-                    progress.dismiss();
-                    handleNetworkTimeoutError(error, "agent");
-                }
-            });
-            return;
+        if (availableAgents == null || availableAgents.isEmpty()) {
+            availableAgents = apiClient.getCachedOrFallbackAgents();
         }
 
         String[] names = new String[availableAgents.size()];
         int selectedIndex = 0;
         for (int i = 0; i < availableAgents.size(); i++) {
             names[i] = availableAgents.get(i).name;
-            if (availableAgents.get(i).name.equalsIgnoreCase(apiClient.getAgentName())) {
+            if (availableAgents.get(i).name.equalsIgnoreCase(apiClient.getAgentName()) ||
+                availableAgents.get(i).id.equalsIgnoreCase(apiClient.getAgentId())) {
                 selectedIndex = i;
             }
         }
@@ -449,35 +430,14 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
                 })
                 .setNegativeButton("Batal", null)
                 .show();
+
+        // Refresh metadata di background non-blocking
+        loadMetadata();
     }
 
     private void showModelPickerDialog() {
-        if (availableModels.isEmpty()) {
-            android.app.ProgressDialog progress = new android.app.ProgressDialog(this);
-            progress.setMessage("Memuat daftar Model AI dari server Molly...");
-            progress.setCancelable(true);
-            progress.show();
-
-            apiClient.fetchMetadata(new MollyApiClient.ApiCallback<MollyApiClient.MetadataResponse>() {
-                @Override
-                public void onSuccess(MollyApiClient.MetadataResponse result) {
-                    progress.dismiss();
-                    if (result.models != null && !result.models.isEmpty()) availableModels = result.models;
-                    if (result.agents != null && !result.agents.isEmpty()) availableAgents = result.agents;
-                    if (!availableModels.isEmpty()) {
-                        showModelPickerDialog();
-                    } else {
-                        Toast.makeText(ChatActivity.this, "Tidak ada model yang tersedia di server", Toast.LENGTH_SHORT).show();
-                    }
-                }
-
-                @Override
-                public void onError(String error) {
-                    progress.dismiss();
-                    handleNetworkTimeoutError(error, "model");
-                }
-            });
-            return;
+        if (availableModels == null || availableModels.isEmpty()) {
+            availableModels = apiClient.getCachedOrFallbackModels();
         }
 
         String[] displayNames = new String[availableModels.size()];
@@ -485,7 +445,8 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
         for (int i = 0; i < availableModels.size(); i++) {
             MollyApiClient.ModelItem m = availableModels.get(i);
             displayNames[i] = m.name + " (" + m.provider + ")";
-            if (m.name.equalsIgnoreCase(apiClient.getSelectedModelName())) {
+            if (m.name.equalsIgnoreCase(apiClient.getSelectedModelName()) ||
+                m.id.equalsIgnoreCase(apiClient.getSelectedModelId())) {
                 selectedIndex = i;
             }
         }
@@ -500,6 +461,9 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
                 })
                 .setNegativeButton("Batal", null)
                 .show();
+
+        // Refresh metadata di background non-blocking
+        loadMetadata();
     }
 
     private void showApprovalModeDialog() {
@@ -523,31 +487,39 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
 
     private void handleNetworkTimeoutError(String error, String featureName) {
         String serverUrl = apiClient.getServerUrl();
-        boolean isLocalIp = serverUrl.contains("10.") || serverUrl.contains("192.168.") || serverUrl.contains("172.") || serverUrl.contains("127.0.0.1") || serverUrl.contains("localhost");
+        boolean isLocalIp = apiClient.isLocalIp(serverUrl);
+        String tunnelCandidate = apiClient.getTunnelUrl();
 
-        if (error != null && (error.toLowerCase().contains("timeout") || error.toLowerCase().contains("failed to connect") || error.toLowerCase().contains("unreachable")) && isLocalIp) {
-            String tunnelCandidate = apiClient.getTunnelUrl();
+        if (error != null && (error.toLowerCase().contains("timeout") || error.toLowerCase().contains("failed to connect") || error.toLowerCase().contains("unreachable"))) {
             StringBuilder msg = new StringBuilder();
-            msg.append("Aplikasi gagal menghubungi server di IP LAN lokal:\n")
-               .append(serverUrl).append("\n\n")
-               .append("Jika ponsel Anda menggunakan data seluler (4G/5G) atau Wi-Fi luar, IP lokal tidak dapat dijangkau dan menyebabkan timeout.\n\n");
-
-            if (!tunnelCandidate.isEmpty()) {
-                msg.append("Tersedia URL Tunnel publik dari pairing terakhir:\n")
-                   .append(tunnelCandidate).append("\n\n")
-                   .append("Apakah Anda ingin mengganti ke URL Tunnel atau mengubah URL Server?");
+            if (isLocalIp) {
+                msg.append("Aplikasi gagal menghubungi server di IP LAN lokal:\n")
+                   .append(serverUrl).append("\n\n")
+                   .append("Jika ponsel Anda menggunakan data seluler (4G/5G) atau Wi-Fi luar, IP lokal tidak dapat dijangkau dan menyebabkan timeout.\n\n");
             } else {
-                msg.append("Silakan ubah URL server ke URL publik/Tunnel Cloudflare backend Anda.");
+                msg.append("Koneksi ke server timeout:\n")
+                   .append(serverUrl).append("\n\n")
+                   .append("Server backend atau tunnel Cloudflare belum merespon.\n\n");
             }
 
-            new AlertDialog.Builder(this)
-                    .setTitle("⚠️ Koneksi Timeout (IP Lokal LAN)")
-                    .setMessage(msg.toString())
-                    .setPositiveButton("Konfigurasi URL", (dialog, which) -> {
-                        showServerConfigDialog();
-                    })
-                    .setNegativeButton("Tutup", null)
-                    .show();
+            AlertDialog.Builder builder = new AlertDialog.Builder(this)
+                    .setTitle("⚠️ Koneksi Timeout")
+                    .setMessage(msg.toString());
+
+            if (!tunnelCandidate.isEmpty() && !tunnelCandidate.equalsIgnoreCase(serverUrl)) {
+                builder.setPositiveButton("Ganti ke Cloudflare Tunnel", (dialog, which) -> {
+                    apiClient.updateServerUrl(tunnelCandidate);
+                    Toast.makeText(this, "Beralih ke URL Tunnel: " + tunnelCandidate, Toast.LENGTH_SHORT).show();
+                    loadMetadata();
+                    syncServerSessions();
+                });
+                builder.setNeutralButton("Ubah URL Manual", (dialog, which) -> showServerConfigDialog());
+            } else {
+                builder.setPositiveButton("Konfigurasi URL", (dialog, which) -> showServerConfigDialog());
+            }
+
+            builder.setNegativeButton("Tutup", null);
+            builder.show();
         } else {
             Toast.makeText(this, "Gagal memuat " + featureName + ": " + error, Toast.LENGTH_LONG).show();
         }

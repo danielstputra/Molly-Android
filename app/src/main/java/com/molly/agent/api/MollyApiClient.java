@@ -348,12 +348,88 @@ public class MollyApiClient {
         return agentName;
     }
 
+    public String getAgentId() {
+        return agentId != null ? agentId : "default-chatbot";
+    }
+
     public String getSelectedModelName() {
         return selectedModelName;
     }
 
+    public String getSelectedModelId() {
+        return selectedModelId != null ? selectedModelId : "ag-tools:gemini-4-hydrogen-medium";
+    }
+
     public String getSelectedApprovalMode() {
         return selectedApprovalMode;
+    }
+
+    public boolean isLocalIp(String url) {
+        if (url == null || url.trim().isEmpty()) return false;
+        String lower = url.toLowerCase();
+        return lower.contains("10.") || lower.contains("192.168.") || lower.contains("172.") ||
+               lower.contains("127.0.0.1") || lower.contains("localhost");
+    }
+
+    public List<ModelItem> getCachedOrFallbackModels() {
+        String cachedJson = prefs.getString("cached_metadata", "");
+        if (!cachedJson.isEmpty()) {
+            try {
+                JsonObject root = JsonParser.parseString(cachedJson).getAsJsonObject();
+                if (root.has("models") && root.get("models").isJsonArray()) {
+                    List<ModelItem> list = new ArrayList<>();
+                    for (JsonElement el : root.getAsJsonArray("models")) {
+                        JsonObject m = el.getAsJsonObject();
+                        list.add(new ModelItem(
+                                m.get("id").getAsString(),
+                                m.has("raw_id") ? m.get("raw_id").getAsString() : m.get("id").getAsString(),
+                                m.get("name").getAsString(),
+                                m.has("provider") ? m.get("provider").getAsString() : "AI",
+                                m.has("provider_id") ? m.get("provider_id").getAsString() : ""
+                        ));
+                    }
+                    if (!list.isEmpty()) return list;
+                }
+            } catch (Exception ignored) {}
+        }
+
+        List<ModelItem> fallback = new ArrayList<>();
+        fallback.add(new ModelItem("ag-tools:gemini-4-hydrogen-medium", "gemini-4-hydrogen-medium", "gemini-4-hydrogen-medium", "Google", "ag-tools"));
+        fallback.add(new ModelItem("ag-tools:gemini-2.5-flash", "gemini-2.5-flash", "gemini-2.5-flash", "Google", "ag-tools"));
+        fallback.add(new ModelItem("ag-tools:gemini-2.5-pro", "gemini-2.5-pro", "gemini-2.5-pro", "Google", "ag-tools"));
+        fallback.add(new ModelItem("ag-tools:claude-3-7-sonnet", "claude-3-7-sonnet", "claude-3-7-sonnet", "Anthropic", "ag-tools"));
+        fallback.add(new ModelItem("ag-tools:claude-3-5-sonnet", "claude-3-5-sonnet", "claude-3-5-sonnet", "Anthropic", "ag-tools"));
+        fallback.add(new ModelItem("ag-tools:gpt-4o", "gpt-4o", "gpt-4o", "OpenAI", "ag-tools"));
+        fallback.add(new ModelItem("ag-tools:gpt-4o-mini", "gpt-4o-mini", "gpt-4o-mini", "OpenAI", "ag-tools"));
+        fallback.add(new ModelItem("ag-tools:deepseek-r1", "deepseek-r1", "deepseek-r1", "DeepSeek", "ag-tools"));
+        return fallback;
+    }
+
+    public List<AgentItem> getCachedOrFallbackAgents() {
+        String cachedJson = prefs.getString("cached_metadata", "");
+        if (!cachedJson.isEmpty()) {
+            try {
+                JsonObject root = JsonParser.parseString(cachedJson).getAsJsonObject();
+                if (root.has("agents") && root.get("agents").isJsonArray()) {
+                    List<AgentItem> list = new ArrayList<>();
+                    for (JsonElement el : root.getAsJsonArray("agents")) {
+                        JsonObject a = el.getAsJsonObject();
+                        list.add(new AgentItem(
+                                a.get("id").getAsString(),
+                                a.get("name").getAsString(),
+                                a.has("description") ? a.get("description").getAsString() : ""
+                        ));
+                    }
+                    if (!list.isEmpty()) return list;
+                }
+            } catch (Exception ignored) {}
+        }
+
+        List<AgentItem> fallback = new ArrayList<>();
+        fallback.add(new AgentItem("default-chatbot", "Asisten Cerdas", "Asisten AI Molly serbaguna"));
+        fallback.add(new AgentItem("coder", "Code Architect", "Spesialis arsitektur sistem dan pemrograman"));
+        fallback.add(new AgentItem("researcher", "Deep Researcher", "Riset komprehensif dan penalaran logis"));
+        return fallback;
     }
 
     /**
@@ -376,18 +452,35 @@ public class MollyApiClient {
         client.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                mainHandler.post(() -> callback.onError(e.getMessage()));
+                // Auto-failover: Jika koneksi lokal timeout / unreachable dan ada tunnel_url, coba beralih otomatis
+                if (isLocalIp(serverUrl) && !tunnelUrl.isEmpty() && !tunnelUrl.equalsIgnoreCase(serverUrl)) {
+                    android.util.Log.w("MollyApiClient", "IP lokal timeout saat fetchMetadata. Auto-failover ke Tunnel: " + tunnelUrl);
+                    updateServerUrl(tunnelUrl);
+                    fetchMetadata(callback);
+                    return;
+                }
+
+                // Jika gagal, kembalikan metadata dari cache lokal atau fallback agar UI tidak macet
+                MetadataResponse fallbackMeta = new MetadataResponse();
+                fallbackMeta.models = getCachedOrFallbackModels();
+                fallbackMeta.agents = getCachedOrFallbackAgents();
+                mainHandler.post(() -> callback.onSuccess(fallbackMeta));
             }
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 if (!response.isSuccessful()) {
-                    mainHandler.post(() -> callback.onError("Error: " + response.code()));
+                    // Fallback to cache on error code
+                    MetadataResponse fallbackMeta = new MetadataResponse();
+                    fallbackMeta.models = getCachedOrFallbackModels();
+                    fallbackMeta.agents = getCachedOrFallbackAgents();
+                    mainHandler.post(() -> callback.onSuccess(fallbackMeta));
                     return;
                 }
 
                 try {
                     String bodyStr = response.body() != null ? response.body().string() : "{}";
+                    prefs.edit().putString("cached_metadata", bodyStr).apply();
                     JsonObject root = JsonParser.parseString(bodyStr).getAsJsonObject();
                     MetadataResponse meta = new MetadataResponse();
 
@@ -525,6 +618,12 @@ public class MollyApiClient {
         client.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
+                if (isLocalIp(serverUrl) && !tunnelUrl.isEmpty() && !tunnelUrl.equalsIgnoreCase(serverUrl)) {
+                    android.util.Log.w("MollyApiClient", "IP lokal timeout saat kirim prompt ke sesi. Auto-failover ke Tunnel: " + tunnelUrl);
+                    updateServerUrl(tunnelUrl);
+                    executeSendPromptToExistingSession(promptText, callback);
+                    return;
+                }
                 mainHandler.post(() -> callback.onError("Koneksi gagal: " + e.getMessage()));
             }
 
@@ -572,6 +671,12 @@ public class MollyApiClient {
         client.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
+                if (isLocalIp(serverUrl) && !tunnelUrl.isEmpty() && !tunnelUrl.equalsIgnoreCase(serverUrl)) {
+                    android.util.Log.w("MollyApiClient", "IP lokal timeout saat buat sesi. Auto-failover ke Tunnel: " + tunnelUrl);
+                    updateServerUrl(tunnelUrl);
+                    createSessionAndSendPrompt(promptText, callback);
+                    return;
+                }
                 mainHandler.post(() -> callback.onError("Koneksi gagal: " + e.getMessage()));
             }
 

@@ -260,7 +260,7 @@
     <!-- Side Navigation Drawer for Chat History -->
     <include
         layout="@layout/layout_session_drawer"
-        android:layout_width="300dp"
+        android:layout_width="@dimen/drawer_width"
         android:layout_height="match_parent"
         android:layout_gravity="start" />
 

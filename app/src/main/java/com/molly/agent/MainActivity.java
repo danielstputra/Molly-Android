@@ -1,6 +1,9 @@
 package com.molly.agent;
 
+import android.content.Context;
 import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.net.NetworkCapabilities;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.EditText;
@@ -174,10 +177,35 @@ public class MainActivity extends AppCompatActivity {
             if (serverUrl.endsWith("/")) {
                 serverUrl = serverUrl.substring(0, serverUrl.length() - 1);
             }
+            if (tunnelUrl != null && tunnelUrl.endsWith("/")) {
+                tunnelUrl = tunnelUrl.substring(0, tunnelUrl.length() - 1);
+            }
+
+            // Cek apakah perangkat sedang menggunakan koneksi data seluler (4G/5G)
+            boolean isCellular = false;
+            try {
+                android.net.ConnectivityManager cm = (android.net.ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+                if (cm != null) {
+                    android.net.NetworkCapabilities caps = cm.getNetworkCapabilities(cm.getActiveNetwork());
+                    if (caps != null && caps.hasTransport(android.net.NetworkCapabilities.TRANSPORT_CELLULAR)) {
+                        isCellular = true;
+                    }
+                }
+            } catch (Exception ignored) {}
+
+            // Jika di jaringan seluler 4G/5G dan ada URL tunnel publik, prioritaskan tunnel agar tidak timeout di IP lokal
+            if (isCellular && !tunnelUrl.isEmpty() && (serverUrl.isEmpty() || apiClient.isLocalIp(serverUrl))) {
+                serverUrl = tunnelUrl;
+                Toast.makeText(this, "4G/Seluler Aktif: Menggunakan URL Tunnel Cloudflare", Toast.LENGTH_SHORT).show();
+            }
 
             if (serverUrl.isEmpty()) {
-                Toast.makeText(this, "URL Server tidak valid atau tidak ditemukan dalam pairing.", Toast.LENGTH_LONG).show();
-                return;
+                if (!tunnelUrl.isEmpty()) {
+                    serverUrl = tunnelUrl;
+                } else {
+                    Toast.makeText(this, "URL Server tidak valid atau tidak ditemukan dalam pairing.", Toast.LENGTH_LONG).show();
+                    return;
+                }
             }
 
             apiClient.savePairingData(serverUrl, tunnelUrl, token, sessionId, agentId, agentName);

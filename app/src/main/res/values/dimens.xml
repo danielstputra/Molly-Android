@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Default Smartphone Dimensions (< 600dp) -->
+    <dimen name="content_max_width">480dp</dimen>
+    <dimen name="screen_padding_horizontal">20dp</dimen>
+    <dimen name="screen_padding_vertical">24dp</dimen>
+    <dimen name="chat_container_max_width">480dp</dimen>
+    <dimen name="drawer_width">300dp</dimen>
+    <dimen name="dialog_max_width">360dp</dimen>
+</resources>

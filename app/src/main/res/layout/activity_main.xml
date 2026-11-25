@@ -1,182 +1,201 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/bg_dark"
-    android:gravity="center_horizontal"
-    android:orientation="vertical"
-    android:padding="24dp">
+    android:fillViewport="true"
+    android:overScrollMode="ifContentScrolls">
 
-    <!-- Header Logo & Title -->
-    <ImageView
-        android:id="@+id/ivLogo"
-        android:layout_width="80dp"
-        android:layout_height="80dp"
-        android:layout_marginTop="32dp"
-        android:contentDescription="@string/app_name"
-        android:src="@drawable/ic_molly_logo" />
-
-    <TextView
-        android:id="@+id/tvWelcomeTitle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="@string/welcome_title"
-        android:textColor="@color/primary_gold"
-        android:textSize="24sp"
-        android:textStyle="bold" />
-
-    <TextView
-        android:id="@+id/tvWelcomeSubtitle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:gravity="center"
-        android:text="@string/welcome_subtitle"
-        android:textColor="@color/text_muted"
-        android:textSize="14sp" />
-
-    <!-- Status Card -->
-    <com.google.android.material.card.MaterialCardView
-        android:id="@+id/cardConnectionStatus"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="32dp"
-        app:cardBackgroundColor="@color/card_dark"
-        app:cardCornerRadius="12dp"
-        app:strokeColor="@color/border_dark"
-        app:strokeWidth="1dp">
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:paddingHorizontal="@dimen/screen_padding_horizontal"
+        android:paddingVertical="@dimen/screen_padding_vertical">
 
+        <!-- Responsive Centered Container (Smartphone & Tablet) -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="16dp">
+            android:layout_weight="1"
+            android:gravity="center_horizontal"
+            android:orientation="vertical">
 
-            <LinearLayout
+            <!-- Header Logo & Title -->
+            <ImageView
+                android:id="@+id/ivLogo"
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:layout_marginTop="16dp"
+                android:contentDescription="@string/app_name"
+                android:src="@drawable/ic_molly_logo" />
+
+            <TextView
+                android:id="@+id/tvWelcomeTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:gravity="center"
+                android:text="@string/welcome_title"
+                android:textColor="@color/primary_gold"
+                android:textSize="24sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvWelcomeSubtitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center"
+                android:text="@string/welcome_subtitle"
+                android:textColor="@color/text_muted"
+                android:textSize="14sp" />
+
+            <!-- Status Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardConnectionStatus"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
+                android:layout_marginTop="24dp"
+                app:cardBackgroundColor="@color/card_dark"
+                app:cardCornerRadius="12dp"
+                app:strokeColor="@color/border_dark"
+                app:strokeWidth="1dp">
 
-                <View
-                    android:id="@+id/statusIndicatorDot"
-                    android:layout_width="10dp"
-                    android:layout_height="10dp"
-                    android:background="@drawable/bg_agent_bubble"
-                    android:backgroundTint="@color/status_red" />
-
-                <TextView
-                    android:id="@+id/tvConnectionStatus"
-                    android:layout_width="wrap_content"
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:text="@string/status_disconnected"
-                    android:textColor="@color/text_white"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <View
+                            android:id="@+id/statusIndicatorDot"
+                            android:layout_width="10dp"
+                            android:layout_height="10dp"
+                            android:background="@drawable/bg_agent_bubble"
+                            android:backgroundTint="@color/status_red" />
+
+                        <TextView
+                            android:id="@+id/tvConnectionStatus"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:text="@string/status_disconnected"
+                            android:textColor="@color/text_white"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/tvServerDetails"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:fontFamily="monospace"
+                        android:text="Server: Belum dikonfigurasi"
+                        android:textColor="@color/text_muted"
+                        android:textSize="12sp" />
+
+                    <TextView
+                        android:id="@+id/tvActiveSession"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="Sesi: -"
+                        android:textColor="@color/text_muted"
+                        android:textSize="12sp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:minHeight="24dp" />
+
+            <!-- Action Buttons -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnOpenActiveChat"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginBottom="12dp"
+                android:text="Buka Chat Sesi Aktif"
+                android:textColor="#121417"
+                android:textStyle="bold"
+                android:visibility="gone"
+                app:backgroundTint="@color/primary_gold"
+                app:cornerRadius="26dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnDisconnectMain"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginBottom="12dp"
+                android:text="Putuskan Molly Agent"
+                android:textColor="@color/status_red"
+                android:textStyle="bold"
+                android:visibility="gone"
+                app:cornerRadius="26dp"
+                app:icon="@drawable/ic_disconnect"
+                app:iconGravity="textStart"
+                app:iconTint="@color/status_red"
+                app:strokeColor="@color/status_red" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnScanQr"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginBottom="12dp"
+                android:text="@string/scan_qr_code"
+                android:textColor="#121417"
+                android:textStyle="bold"
+                app:backgroundTint="@color/primary_gold"
+                app:cornerRadius="26dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnManualConnect"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginBottom="14dp"
+                android:text="@string/manual_connect"
+                android:textColor="@color/primary_gold"
+                app:cornerRadius="26dp"
+                app:strokeColor="@color/primary_gold" />
 
             <TextView
-                android:id="@+id/tvServerDetails"
-                android:layout_width="match_parent"
+                android:id="@+id/btnViewIntroAgain"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:fontFamily="monospace"
-                android:text="Server: Belum dikonfigurasi"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginBottom="4dp"
+                android:background="?selectableItemBackgroundBorderless"
+                android:padding="6dp"
+                android:text="✨ Pelajari Apa itu Molly Agent"
+                android:textColor="@color/primary_gold"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/btnAboutApp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginBottom="16dp"
+                android:background="?selectableItemBackgroundBorderless"
+                android:padding="6dp"
+                android:text="ℹ️ Tentang Aplikasi &amp; Developer"
                 android:textColor="@color/text_muted"
                 android:textSize="12sp" />
 
-            <TextView
-                android:id="@+id/tvActiveSession"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="Sesi: -"
-                android:textColor="@color/text_muted"
-                android:textSize="12sp" />
         </LinearLayout>
-    </com.google.android.material.card.MaterialCardView>
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1" />
-
-    <!-- Action Buttons -->
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnOpenActiveChat"
-        android:layout_width="match_parent"
-        android:layout_height="52dp"
-        android:layout_marginBottom="12dp"
-        android:text="Buka Chat Sesi Aktif"
-        android:textColor="#121417"
-        android:textStyle="bold"
-        android:visibility="gone"
-        app:backgroundTint="@color/primary_gold"
-        app:cornerRadius="26dp" />
-
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnDisconnectMain"
-        style="@style/Widget.Material3.Button.OutlinedButton"
-        android:layout_width="match_parent"
-        android:layout_height="52dp"
-        android:layout_marginBottom="12dp"
-        android:text="Putuskan Molly Agent"
-        android:textColor="@color/status_red"
-        android:textStyle="bold"
-        android:visibility="gone"
-        app:cornerRadius="26dp"
-        app:icon="@drawable/ic_disconnect"
-        app:iconGravity="textStart"
-        app:iconTint="@color/status_red"
-        app:strokeColor="@color/status_red" />
-
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnScanQr"
-        android:layout_width="match_parent"
-        android:layout_height="52dp"
-        android:layout_marginBottom="12dp"
-        android:text="@string/scan_qr_code"
-        android:textColor="#121417"
-        android:textStyle="bold"
-        app:backgroundTint="@color/primary_gold"
-        app:cornerRadius="26dp" />
-
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnManualConnect"
-        style="@style/Widget.Material3.Button.OutlinedButton"
-        android:layout_width="match_parent"
-        android:layout_height="52dp"
-        android:layout_marginBottom="14dp"
-        android:text="@string/manual_connect"
-        android:textColor="@color/primary_gold"
-        app:cornerRadius="26dp"
-        app:strokeColor="@color/primary_gold" />
-
-    <TextView
-        android:id="@+id/btnViewIntroAgain"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
-        android:layout_marginBottom="4dp"
-        android:background="?selectableItemBackgroundBorderless"
-        android:padding="6dp"
-        android:text="✨ Pelajari Apa itu Molly Agent"
-        android:textColor="@color/primary_gold"
-        android:textSize="13sp" />
-
-    <TextView
-        android:id="@+id/btnAboutApp"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
-        android:layout_marginBottom="16dp"
-        android:background="?selectableItemBackgroundBorderless"
-        android:padding="6dp"
-        android:text="ℹ️ Tentang Aplikasi &amp; Developer"
-        android:textColor="@color/text_muted"
-        android:textSize="12sp" />
-
-</LinearLayout>
+    </LinearLayout>
+</ScrollView>
