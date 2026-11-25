@@ -211,6 +211,86 @@ public class MollyApiClient {
         return !serverUrl.isEmpty();
     }
 
+    /**
+     * Mendaftarkan status pairing perangkat mobile ke backend Molly.
+     */
+    public void registerPairing(String targetSessionId, ApiCallback<Boolean> callback) {
+        if (!isConfigured()) return;
+        final String targetUrl = this.serverUrl;
+        final String session = (targetSessionId != null && !targetSessionId.isEmpty()) ? targetSessionId : this.sessionId;
+        final String authToken = this.token;
+
+        String endpoint = targetUrl + "/api/system/mobile/pair";
+        JsonObject body = new JsonObject();
+        body.addProperty("session_id", session);
+        body.addProperty("device_info", "Android " + android.os.Build.MODEL);
+
+        RequestBody reqBody = RequestBody.create(body.toString(), MediaType.get("application/json; charset=utf-8"));
+        Request request = new Request.Builder()
+                .url(endpoint)
+                .addHeader("Authorization", "Bearer " + authToken)
+                .addHeader("Bypass-Tunnel-Reminder", "true")
+                .post(reqBody)
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                if (callback != null) {
+                    mainHandler.post(() -> callback.onError(e.getMessage()));
+                }
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) {
+                if (callback != null) {
+                    mainHandler.post(() -> callback.onSuccess(response.isSuccessful()));
+                }
+            }
+        });
+    }
+
+    /**
+     * Mengirim notifikasi unpair/disconnect ke server Molly sebelum data lokal dihapus.
+     */
+    public void notifyDisconnect(ApiCallback<Boolean> callback) {
+        if (!isConfigured()) {
+            if (callback != null) callback.onSuccess(true);
+            return;
+        }
+        final String targetUrl = this.serverUrl;
+        final String targetSession = this.sessionId;
+        final String targetToken = this.token;
+
+        String endpoint = targetUrl + "/api/system/mobile/disconnect";
+        JsonObject body = new JsonObject();
+        body.addProperty("session_id", targetSession);
+
+        RequestBody reqBody = RequestBody.create(body.toString(), MediaType.get("application/json; charset=utf-8"));
+        Request request = new Request.Builder()
+                .url(endpoint)
+                .addHeader("Authorization", "Bearer " + targetToken)
+                .addHeader("Bypass-Tunnel-Reminder", "true")
+                .post(reqBody)
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                if (callback != null) {
+                    mainHandler.post(() -> callback.onError(e.getMessage()));
+                }
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) {
+                if (callback != null) {
+                    mainHandler.post(() -> callback.onSuccess(response.isSuccessful()));
+                }
+            }
+        });
+    }
+
     public void disconnect() {
         this.serverUrl = "";
         this.tunnelUrl = "";
@@ -1587,6 +1667,280 @@ public class MollyApiClient {
                 } catch (Exception e) {
                     mainHandler.post(() -> callback.onSuccess("default"));
                 }
+            }
+        });
+    }
+
+    // =========================================================================
+    // AI Model Providers API (/api/system/model-providers)
+    // =========================================================================
+
+    public void fetchModelProviders(ApiCallback<List<com.molly.agent.model.ModelProviderItem>> callback) {
+        if (!isConfigured()) {
+            callback.onError("Server belum terhubung");
+            return;
+        }
+
+        String endpoint = serverUrl + "/api/system/model-providers";
+        Request request = new Request.Builder()
+                .url(endpoint)
+                .addHeader("Authorization", "Bearer " + token)
+                .addHeader("Bypass-Tunnel-Reminder", "true")
+                .get()
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                mainHandler.post(() -> callback.onError(e.getMessage()));
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                if (!response.isSuccessful()) {
+                    mainHandler.post(() -> callback.onError("Gagal memuat penyedia model: status " + response.code()));
+                    return;
+                }
+                try {
+                    String bodyStr = response.body() != null ? response.body().string() : "{}";
+                    JsonObject obj = JsonParser.parseString(bodyStr).getAsJsonObject();
+                    List<com.molly.agent.model.ModelProviderItem> list = new ArrayList<>();
+                    if (obj.has("data") && obj.get("data").isJsonArray()) {
+                        for (JsonElement el : obj.getAsJsonArray("data")) {
+                            if (el.isJsonObject()) {
+                                list.add(com.molly.agent.model.ModelProviderItem.fromJson(el.getAsJsonObject()));
+                            }
+                        }
+                    }
+                    mainHandler.post(() -> callback.onSuccess(list));
+                } catch (Exception e) {
+                    mainHandler.post(() -> callback.onError("Gagal parse data penyedia model: " + e.getMessage()));
+                }
+            }
+        });
+    }
+
+    public void updateModelProvider(String providerId, JsonObject payload, ApiCallback<com.molly.agent.model.ModelProviderItem> callback) {
+        if (!isConfigured() || providerId == null) {
+            callback.onError("Parameter tidak valid");
+            return;
+        }
+
+        String endpoint = serverUrl + "/api/system/model-providers/" + providerId;
+        RequestBody body = RequestBody.create(payload.toString(), MediaType.parse("application/json; charset=utf-8"));
+        Request request = new Request.Builder()
+                .url(endpoint)
+                .addHeader("Authorization", "Bearer " + token)
+                .addHeader("Bypass-Tunnel-Reminder", "true")
+                .put(body)
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                mainHandler.post(() -> callback.onError(e.getMessage()));
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                if (!response.isSuccessful()) {
+                    String err = response.body() != null ? response.body().string() : "";
+                    mainHandler.post(() -> callback.onError("Gagal update penyedia (" + response.code() + "): " + err));
+                    return;
+                }
+                try {
+                    String bodyStr = response.body() != null ? response.body().string() : "{}";
+                    JsonObject obj = JsonParser.parseString(bodyStr).getAsJsonObject();
+                    JsonObject data = obj.has("data") && obj.get("data").isJsonObject() ? obj.getAsJsonObject("data") : obj;
+                    com.molly.agent.model.ModelProviderItem item = com.molly.agent.model.ModelProviderItem.fromJson(data);
+                    mainHandler.post(() -> callback.onSuccess(item));
+                } catch (Exception e) {
+                    mainHandler.post(() -> callback.onError("Gagal parse respon: " + e.getMessage()));
+                }
+            }
+        });
+    }
+
+    public void createModelProvider(JsonObject payload, ApiCallback<com.molly.agent.model.ModelProviderItem> callback) {
+        if (!isConfigured()) {
+            callback.onError("Server belum terhubung");
+            return;
+        }
+
+        String endpoint = serverUrl + "/api/system/model-providers";
+        RequestBody body = RequestBody.create(payload.toString(), MediaType.parse("application/json; charset=utf-8"));
+        Request request = new Request.Builder()
+                .url(endpoint)
+                .addHeader("Authorization", "Bearer " + token)
+                .addHeader("Bypass-Tunnel-Reminder", "true")
+                .post(body)
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                mainHandler.post(() -> callback.onError(e.getMessage()));
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                if (!response.isSuccessful()) {
+                    String err = response.body() != null ? response.body().string() : "";
+                    mainHandler.post(() -> callback.onError("Gagal menambah penyedia (" + response.code() + "): " + err));
+                    return;
+                }
+                try {
+                    String bodyStr = response.body() != null ? response.body().string() : "{}";
+                    JsonObject obj = JsonParser.parseString(bodyStr).getAsJsonObject();
+                    JsonObject data = obj.has("data") && obj.get("data").isJsonObject() ? obj.getAsJsonObject("data") : obj;
+                    com.molly.agent.model.ModelProviderItem item = com.molly.agent.model.ModelProviderItem.fromJson(data);
+                    mainHandler.post(() -> callback.onSuccess(item));
+                } catch (Exception e) {
+                    mainHandler.post(() -> callback.onError("Gagal parse respon: " + e.getMessage()));
+                }
+            }
+        });
+    }
+
+    public void deleteModelProvider(String providerId, ApiCallback<Boolean> callback) {
+        if (!isConfigured() || providerId == null) {
+            callback.onError("Parameter tidak valid");
+            return;
+        }
+
+        String endpoint = serverUrl + "/api/system/model-providers/" + providerId;
+        Request request = new Request.Builder()
+                .url(endpoint)
+                .addHeader("Authorization", "Bearer " + token)
+                .addHeader("Bypass-Tunnel-Reminder", "true")
+                .delete()
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                mainHandler.post(() -> callback.onError(e.getMessage()));
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                boolean ok = response.isSuccessful();
+                mainHandler.post(() -> {
+                    if (ok) callback.onSuccess(true);
+                    else callback.onError("Gagal menghapus penyedia: status " + response.code());
+                });
+            }
+        });
+    }
+
+    public void fetchRemoteModels(String providerId, ApiCallback<List<com.molly.agent.model.ProviderModelItem>> callback) {
+        if (!isConfigured() || providerId == null) {
+            callback.onError("Parameter tidak valid");
+            return;
+        }
+
+        String endpoint = serverUrl + "/api/system/model-providers/" + providerId + "/remote-models";
+        Request request = new Request.Builder()
+                .url(endpoint)
+                .addHeader("Authorization", "Bearer " + token)
+                .addHeader("Bypass-Tunnel-Reminder", "true")
+                .get()
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                mainHandler.post(() -> callback.onError(e.getMessage()));
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                if (!response.isSuccessful()) {
+                    String err = response.body() != null ? response.body().string() : "";
+                    mainHandler.post(() -> callback.onError("Gagal mengambil model jarak jauh (" + response.code() + "): " + err));
+                    return;
+                }
+                try {
+                    String bodyStr = response.body() != null ? response.body().string() : "{}";
+                    JsonObject obj = JsonParser.parseString(bodyStr).getAsJsonObject();
+                    List<com.molly.agent.model.ProviderModelItem> models = new ArrayList<>();
+                    if (obj.has("data") && obj.get("data").isJsonArray()) {
+                        for (JsonElement el : obj.getAsJsonArray("data")) {
+                            if (el.isJsonObject()) {
+                                models.add(com.molly.agent.model.ProviderModelItem.fromJson(el.getAsJsonObject()));
+                            }
+                        }
+                    }
+                    mainHandler.post(() -> callback.onSuccess(models));
+                } catch (Exception e) {
+                    mainHandler.post(() -> callback.onError("Gagal parse model jarak jauh: " + e.getMessage()));
+                }
+            }
+        });
+    }
+
+    public void testModelStatus(String spec, ApiCallback<JsonObject> callback) {
+        if (!isConfigured() || spec == null) {
+            callback.onError("Parameter tidak valid");
+            return;
+        }
+
+        String endpoint = serverUrl + "/api/system/model-providers/models/status?spec=" + spec;
+        Request request = new Request.Builder()
+                .url(endpoint)
+                .addHeader("Authorization", "Bearer " + token)
+                .addHeader("Bypass-Tunnel-Reminder", "true")
+                .get()
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                mainHandler.post(() -> callback.onError(e.getMessage()));
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                try {
+                    String bodyStr = response.body() != null ? response.body().string() : "{}";
+                    JsonObject obj = JsonParser.parseString(bodyStr).getAsJsonObject();
+                    JsonObject data = obj.has("data") && obj.get("data").isJsonObject() ? obj.getAsJsonObject("data") : obj;
+                    mainHandler.post(() -> callback.onSuccess(data));
+                } catch (Exception e) {
+                    mainHandler.post(() -> callback.onError("Gagal parse respon uji: " + e.getMessage()));
+                }
+            }
+        });
+    }
+
+    public void refreshModelCache(ApiCallback<String> callback) {
+        if (!isConfigured()) {
+            callback.onError("Server belum terhubung");
+            return;
+        }
+
+        String endpoint = serverUrl + "/api/system/model-providers/models/cache/refresh";
+        RequestBody emptyBody = RequestBody.create("{}", MediaType.parse("application/json; charset=utf-8"));
+        Request request = new Request.Builder()
+                .url(endpoint)
+                .addHeader("Authorization", "Bearer " + token)
+                .addHeader("Bypass-Tunnel-Reminder", "true")
+                .post(emptyBody)
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                mainHandler.post(() -> callback.onError(e.getMessage()));
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                if (!response.isSuccessful()) {
+                    mainHandler.post(() -> callback.onError("Gagal refresh cache: status " + response.code()));
+                    return;
+                }
+                mainHandler.post(() -> callback.onSuccess("Cache model berhasil diperbarui!"));
             }
         });
     }

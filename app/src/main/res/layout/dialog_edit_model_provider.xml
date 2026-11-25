@@ -1,0 +1,303 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_sheet_dialog"
+    android:backgroundTint="#13161A">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <!-- Title -->
+        <TextView
+            android:id="@+id/tvEditProviderTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="➕ Tambah Penyedia Model AI"
+            android:textColor="#FFFFFF"
+            android:textSize="17sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="Konfigurasikan endpoint API LLM pihak ketiga atau lokal"
+            android:textColor="#9CA3AF"
+            android:textSize="12sp" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginVertical="12dp"
+            android:background="#262D35" />
+
+        <!-- 1. Provider ID -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="ID Penyedia (Karakter Unik) *"
+            android:textColor="#E5E7EB"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/etEditProviderId"
+            android:layout_width="match_parent"
+            android:layout_height="42dp"
+            android:layout_marginTop="4dp"
+            android:background="@drawable/bg_code_block"
+            android:backgroundTint="#1A1E24"
+            android:fontFamily="monospace"
+            android:hint="openai, deepseek, ollama, custom-ai"
+            android:paddingHorizontal="10dp"
+            android:singleLine="true"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#4B5563"
+            android:textSize="12sp" />
+
+        <!-- 2. Display Name -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="Nama Tampilan *"
+            android:textColor="#E5E7EB"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/etEditProviderDisplayName"
+            android:layout_width="match_parent"
+            android:layout_height="42dp"
+            android:layout_marginTop="4dp"
+            android:background="@drawable/bg_code_block"
+            android:backgroundTint="#1A1E24"
+            android:hint="Contoh: OpenAI Platform, DeepSeek AI"
+            android:paddingHorizontal="10dp"
+            android:singleLine="true"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#4B5563"
+            android:textSize="12sp" />
+
+        <!-- 3. Provider Type / Protocol -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="Tipe Adapter Protokol *"
+            android:textColor="#E5E7EB"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <RadioGroup
+            android:id="@+id/rgEditProviderType"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:orientation="vertical">
+
+            <RadioButton
+                android:id="@+id/rbTypeOpenAI"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="true"
+                android:text="OpenAI Completions API (/v1/chat/completions)"
+                android:textColor="#D1D5DB"
+                android:textSize="12sp" />
+
+            <RadioButton
+                android:id="@+id/rbTypeAnthropic"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Anthropic Messages API (/v1/messages)"
+                android:textColor="#D1D5DB"
+                android:textSize="12sp" />
+        </RadioGroup>
+
+        <!-- 4. Base URL -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="Base URL API *"
+            android:textColor="#E5E7EB"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/etEditProviderBaseUrl"
+            android:layout_width="match_parent"
+            android:layout_height="42dp"
+            android:layout_marginTop="4dp"
+            android:background="@drawable/bg_code_block"
+            android:backgroundTint="#1A1E24"
+            android:fontFamily="monospace"
+            android:hint="https://api.openai.com/v1 atau http://192.168.x.x:11434/v1"
+            android:paddingHorizontal="10dp"
+            android:singleLine="true"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#4B5563"
+            android:textSize="12sp" />
+
+        <!-- 5. API Key -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="API Key Langsung (Opsional jika menggunakan Env)"
+            android:textColor="#E5E7EB"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/etEditProviderApiKey"
+            android:layout_width="match_parent"
+            android:layout_height="42dp"
+            android:layout_marginTop="4dp"
+            android:background="@drawable/bg_code_block"
+            android:backgroundTint="#1A1E24"
+            android:hint="sk-..."
+            android:inputType="textPassword"
+            android:paddingHorizontal="10dp"
+            android:singleLine="true"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#4B5563"
+            android:textSize="12sp" />
+
+        <!-- 6. API Key Env Variable -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="Nama Variabel Lingkungan API Key (Opsional)"
+            android:textColor="#E5E7EB"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/etEditProviderApiKeyEnv"
+            android:layout_width="match_parent"
+            android:layout_height="42dp"
+            android:layout_marginTop="4dp"
+            android:background="@drawable/bg_code_block"
+            android:backgroundTint="#1A1E24"
+            android:fontFamily="monospace"
+            android:hint="OPENAI_API_KEY, ANTHROPIC_API_KEY, dll"
+            android:paddingHorizontal="10dp"
+            android:singleLine="true"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#4B5563"
+            android:textSize="12sp" />
+
+        <!-- 7. Capabilities Checkboxes -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="Kemampuan yang Didukung *"
+            android:textColor="#E5E7EB"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:orientation="horizontal">
+
+            <CheckBox
+                android:id="@+id/cbCapChat"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="true"
+                android:text="Chat"
+                android:textColor="#D1D5DB"
+                android:textSize="12sp" />
+
+            <CheckBox
+                android:id="@+id/cbCapEmbedding"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="14dp"
+                android:text="Embedding"
+                android:textColor="#D1D5DB"
+                android:textSize="12sp" />
+
+            <CheckBox
+                android:id="@+id/cbCapRerank"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="14dp"
+                android:text="Rerank"
+                android:textColor="#D1D5DB"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <!-- 8. Switch Enabled -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Aktifkan Penyedia Ini"
+                android:textColor="#E5E7EB"
+                android:textSize="13sp" />
+
+            <androidx.appcompat.widget.SwitchCompat
+                android:id="@+id/swEditProviderEnabled"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="true" />
+        </LinearLayout>
+
+        <!-- Actions Buttons -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/btnCancelEditProvider"
+                android:layout_width="0dp"
+                android:layout_height="42dp"
+                android:layout_marginEnd="6dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_action_pill"
+                android:backgroundTint="#264B5563"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:text="Batal"
+                android:textColor="#9CA3AF"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/btnSaveEditProvider"
+                android:layout_width="0dp"
+                android:layout_height="42dp"
+                android:layout_marginStart="6dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_action_pill"
+                android:backgroundTint="@color/primary_gold"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:text="Simpan Konfigurasi"
+                android:textColor="#121417"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+    </LinearLayout>
+</ScrollView>

@@ -126,6 +126,12 @@ public class MainActivity extends AppCompatActivity {
                 .setTitle("Putuskan Molly Agent?")
                 .setMessage("Apakah Anda yakin ingin memutuskan sambungan dengan server Molly? Sesi pairing akan dihapus dari HP.")
                 .setPositiveButton("Ya, Putuskan", (dialog, which) -> {
+                    apiClient.notifyDisconnect(new MollyApiClient.ApiCallback<Boolean>() {
+                        @Override
+                        public void onSuccess(Boolean result) {}
+                        @Override
+                        public void onError(String error) {}
+                    });
                     apiClient.disconnect();
                     updateUiStatus();
                     Toast.makeText(this, "Koneksi Molly Agent telah diputuskan", Toast.LENGTH_SHORT).show();
@@ -152,11 +158,13 @@ public class MainActivity extends AppCompatActivity {
 
             String trimmed = rawPayload.trim();
             String tunnelUrl = "";
+            String lanUrl = "";
 
             if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
                 JsonObject obj = JsonParser.parseString(trimmed).getAsJsonObject();
                 if (obj.has("server_url")) serverUrl = obj.get("server_url").getAsString().trim();
                 if (obj.has("tunnel_url")) tunnelUrl = obj.get("tunnel_url").getAsString().trim();
+                if (obj.has("lan_url")) lanUrl = obj.get("lan_url").getAsString().trim();
                 if (obj.has("token") && !obj.get("token").getAsString().trim().isEmpty()) {
                     token = obj.get("token").getAsString().trim();
                 }
@@ -180,6 +188,9 @@ public class MainActivity extends AppCompatActivity {
             if (tunnelUrl != null && tunnelUrl.endsWith("/")) {
                 tunnelUrl = tunnelUrl.substring(0, tunnelUrl.length() - 1);
             }
+            if (lanUrl != null && lanUrl.endsWith("/")) {
+                lanUrl = lanUrl.substring(0, lanUrl.length() - 1);
+            }
 
             // Cek apakah perangkat sedang menggunakan koneksi data seluler (4G/5G)
             boolean isCellular = false;
@@ -193,10 +204,15 @@ public class MainActivity extends AppCompatActivity {
                 }
             } catch (Exception ignored) {}
 
-            // Jika di jaringan seluler 4G/5G dan ada URL tunnel publik, prioritaskan tunnel agar tidak timeout di IP lokal
-            if (isCellular && !tunnelUrl.isEmpty() && (serverUrl.isEmpty() || apiClient.isLocalIp(serverUrl))) {
+            // Jika di jaringan seluler 4G/5G dan ada URL tunnel publik, prioritaskan tunnel
+            if (isCellular && !tunnelUrl.isEmpty()) {
                 serverUrl = tunnelUrl;
-                Toast.makeText(this, "4G/Seluler Aktif: Menggunakan URL Tunnel Cloudflare", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "4G/Seluler Aktif: Menggunakan URL Tunnel", Toast.LENGTH_SHORT).show();
+            } else if (!isCellular && !lanUrl.isEmpty()) {
+                // Jika di Wi-Fi lokal, prioritaskan lanUrl jika serverUrl berupa tunnel atau tidak terjangkau
+                if (serverUrl.isEmpty() || serverUrl.contains(".trycloudflare.com") || serverUrl.contains(".ngrok")) {
+                    serverUrl = lanUrl;
+                }
             }
 
             if (serverUrl.isEmpty()) {
@@ -209,6 +225,7 @@ public class MainActivity extends AppCompatActivity {
             }
 
             apiClient.savePairingData(serverUrl, tunnelUrl, token, sessionId, agentId, agentName);
+            apiClient.registerPairing(sessionId, null);
             Toast.makeText(this, "Berhasil terhubung ke Molly!", Toast.LENGTH_SHORT).show();
             updateUiStatus();
             openChatActivity();

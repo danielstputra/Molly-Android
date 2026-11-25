@@ -48,6 +48,11 @@
             android:windowSoftInputMode="adjustPan" />
 
         <activity
+            android:name=".ModelProvidersActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustPan" />
+
+        <activity
             android:name="com.journeyapps.barcodescanner.CaptureActivity"
             android:screenOrientation="portrait"
             android:stateNotNeeded="true"

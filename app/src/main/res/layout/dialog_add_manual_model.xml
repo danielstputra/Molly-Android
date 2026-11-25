@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_sheet_dialog"
+    android:backgroundTint="#13161A"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <!-- Title -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="➕ Tambah Model Manual"
+        android:textColor="#FFFFFF"
+        android:textSize="16sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:text="Tambahkan pengenal model kustom yang didukung oleh API penyedia"
+        android:textColor="#9CA3AF"
+        android:textSize="11sp" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginVertical="10dp"
+        android:background="#262D35" />
+
+    <!-- Model ID -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="ID Model (Persis seperti di API) *"
+        android:textColor="#E5E7EB"
+        android:textSize="12sp"
+        android:textStyle="bold" />
+
+    <EditText
+        android:id="@+id/etManualModelId"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:layout_marginTop="4dp"
+        android:background="@drawable/bg_code_block"
+        android:backgroundTint="#1A1E24"
+        android:fontFamily="monospace"
+        android:hint="Contoh: gpt-4o atau deepseek-chat"
+        android:paddingHorizontal="10dp"
+        android:singleLine="true"
+        android:textColor="#FFFFFF"
+        android:textColorHint="#4B5563"
+        android:textSize="12sp" />
+
+    <!-- Display Name -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:text="Nama Tampilan (Opsional)"
+        android:textColor="#E5E7EB"
+        android:textSize="12sp"
+        android:textStyle="bold" />
+
+    <EditText
+        android:id="@+id/etManualModelDisplayName"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:layout_marginTop="4dp"
+        android:background="@drawable/bg_code_block"
+        android:backgroundTint="#1A1E24"
+        android:hint="Nama ramah yang ditampilkan"
+        android:paddingHorizontal="10dp"
+        android:singleLine="true"
+        android:textColor="#FFFFFF"
+        android:textColorHint="#4B5563"
+        android:textSize="12sp" />
+
+    <!-- Type Selection (Radio) -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:text="Tipe Model *"
+        android:textColor="#E5E7EB"
+        android:textSize="12sp"
+        android:textStyle="bold" />
+
+    <RadioGroup
+        android:id="@+id/rgManualModelType"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:orientation="horizontal">
+
+        <RadioButton
+            android:id="@+id/rbTypeChat"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:checked="true"
+            android:text="Chat"
+            android:textColor="#D1D5DB"
+            android:textSize="12sp" />
+
+        <RadioButton
+            android:id="@+id/rbTypeEmbedding"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="14dp"
+            android:text="Embedding"
+            android:textColor="#D1D5DB"
+            android:textSize="12sp" />
+
+        <RadioButton
+            android:id="@+id/rbTypeRerank"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="14dp"
+            android:text="Rerank"
+            android:textColor="#D1D5DB"
+            android:textSize="12sp" />
+    </RadioGroup>
+
+    <!-- Context Length -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:text="Panjang Konteks / Token Maksimal (Opsional)"
+        android:textColor="#E5E7EB"
+        android:textSize="12sp"
+        android:textStyle="bold" />
+
+    <EditText
+        android:id="@+id/etManualModelContext"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:layout_marginTop="4dp"
+        android:background="@drawable/bg_code_block"
+        android:backgroundTint="#1A1E24"
+        android:hint="Contoh: 131072 atau 1048576"
+        android:inputType="number"
+        android:paddingHorizontal="10dp"
+        android:singleLine="true"
+        android:textColor="#FFFFFF"
+        android:textColorHint="#4B5563"
+        android:textSize="12sp" />
+
+    <!-- Actions -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/btnCancelManualModel"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_marginEnd="6dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_action_pill"
+            android:backgroundTint="#264B5563"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:text="Batal"
+            android:textColor="#9CA3AF"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/btnAddManualModelConfirm"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="6dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_action_pill"
+            android:backgroundTint="@color/primary_gold"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:text="Tambahkan"
+            android:textColor="#121417"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+</LinearLayout>

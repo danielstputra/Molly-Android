@@ -149,6 +149,42 @@
             android:textSize="11sp" />
     </LinearLayout>
 
+    <!-- Menu Penyedia Model AI (AI Providers) -->
+    <LinearLayout
+        android:id="@+id/btnDrawerProviders"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="12dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🧩"
+            android:textSize="14sp" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:text="Penyedia Model AI (Providers)"
+            android:textColor="@color/text_white"
+            android:textSize="13sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Katalog ❯"
+            android:textColor="@color/primary_gold"
+            android:textSize="11sp" />
+    </LinearLayout>
+
     <!-- Menu Status Penggunaan Token & Konteks -->
     <LinearLayout
         android:id="@+id/btnDrawerStatus"

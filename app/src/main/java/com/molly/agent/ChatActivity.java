@@ -248,6 +248,14 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
             });
         }
 
+        View btnDrawerProviders = findViewById(R.id.btnDrawerProviders);
+        if (btnDrawerProviders != null) {
+            btnDrawerProviders.setOnClickListener(v -> {
+                drawerLayout.closeDrawers();
+                startActivity(new Intent(this, ModelProvidersActivity.class));
+            });
+        }
+
         View btnDrawerStatus = findViewById(R.id.btnDrawerStatus);
         if (btnDrawerStatus != null) {
             btnDrawerStatus.setOnClickListener(v -> {
@@ -835,6 +843,12 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
                 .setTitle("Putuskan Molly Agent?")
                 .setMessage("Apakah Anda yakin ingin memutuskan sambungan dengan server Molly? Sesi ini akan ditutup dan Anda harus scan QR code kembali untuk menghubungkannya.")
                 .setPositiveButton("Ya, Putuskan", (dialog, which) -> {
+                    apiClient.notifyDisconnect(new MollyApiClient.ApiCallback<Boolean>() {
+                        @Override
+                        public void onSuccess(Boolean result) {}
+                        @Override
+                        public void onError(String error) {}
+                    });
                     apiClient.disconnect();
                     Toast.makeText(this, "Koneksi Molly Agent telah diputuskan", Toast.LENGTH_SHORT).show();
                     finish();
