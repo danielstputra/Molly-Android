@@ -141,6 +141,11 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_chat);
 
+        // Validasi integritas aplikasi saat runtime (Anti-Clone, Anti-Tamper, Anti-Debug)
+        if (!com.molly.agent.security.AppSecurityGuard.enforceSecurity(this)) {
+            return;
+        }
+
         apiClient = new MollyApiClient(this);
         sessionManager = new SessionHistoryManager(this);
 

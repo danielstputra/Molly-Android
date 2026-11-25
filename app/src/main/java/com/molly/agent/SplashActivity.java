@@ -23,6 +23,11 @@ public class SplashActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_splash);
 
+        // Validasi integritas aplikasi saat peluncuran (Anti-Tamper, Anti-Clone, Anti-Debugger)
+        if (!com.molly.agent.security.AppSecurityGuard.enforceSecurity(this)) {
+            return;
+        }
+
         new Handler(Looper.getMainLooper()).postDelayed(this::navigateNext, SPLASH_DELAY_MS);
     }
 
