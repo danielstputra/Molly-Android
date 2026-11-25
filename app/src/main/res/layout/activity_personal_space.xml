@@ -257,10 +257,10 @@
             android:textStyle="bold" />
     </LinearLayout>
 
-    <!-- Table Header (nama, ukuran, waktu modifikasi) -->
+    <!-- Table Header (Pilih Semua & Daftar Berkas Responsif) -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="32dp"
+        android:layout_height="34dp"
         android:background="#15181E"
         android:gravity="center_vertical"
         android:orientation="horizontal"
@@ -277,29 +277,17 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
             android:layout_weight="1"
-            android:text="nama"
+            android:text="Pilih Semua Berkas"
             android:textColor="#9CA3AF"
-            android:textSize="12sp" />
+            android:textSize="12sp"
+            android:textStyle="bold" />
 
         <TextView
-            android:layout_width="70dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:gravity="end"
-            android:text="ukuran"
-            android:textColor="#9CA3AF"
-            android:textSize="12sp" />
-
-        <TextView
-            android:layout_width="85dp"
-            android:layout_height="wrap_content"
-            android:gravity="end"
-            android:text="waktu"
-            android:textColor="#9CA3AF"
-            android:textSize="12sp" />
-
-        <View
-            android:layout_width="32dp"
-            android:layout_height="1dp" />
+            android:text="Ukuran • Tanggal"
+            android:textColor="#6B7280"
+            android:textSize="11sp" />
     </LinearLayout>
 
     <!-- Progress Indicator -->

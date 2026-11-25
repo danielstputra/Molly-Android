@@ -26,38 +26,59 @@
         android:text="📁"
         android:textSize="18sp" />
 
-    <!-- Nama Berkas / Direktori -->
-    <TextView
-        android:id="@+id/tvRowName"
+    <!-- Konten Berkas: Nama (Baris 1) & Ukuran/Waktu (Baris 2) Responsif Penuh -->
+    <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
+        android:layout_marginStart="10dp"
         android:layout_weight="1"
-        android:ellipsize="middle"
-        android:maxLines="1"
-        android:text="agents"
-        android:textColor="#FFFFFF"
-        android:textSize="13sp" />
+        android:orientation="vertical">
 
-    <!-- Ukuran -->
-    <TextView
-        android:id="@+id/tvRowSize"
-        android:layout_width="70dp"
-        android:layout_height="wrap_content"
-        android:gravity="end"
-        android:text="-"
-        android:textColor="#9CA3AF"
-        android:textSize="12sp" />
+        <!-- Nama Berkas / Direktori Penuh -->
+        <TextView
+            android:id="@+id/tvRowName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="middle"
+            android:maxLines="1"
+            android:text="agents"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:textStyle="normal" />
 
-    <!-- Waktu Modifikasi -->
-    <TextView
-        android:id="@+id/tvRowTime"
-        android:layout_width="85dp"
-        android:layout_height="wrap_content"
-        android:gravity="end"
-        android:text="1 天前"
-        android:textColor="#9CA3AF"
-        android:textSize="11sp" />
+        <!-- Subtitle Info: Ukuran • Waktu Modifikasi -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tvRowSize"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="-"
+                android:textColor="#9CA3AF"
+                android:textSize="11sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="6dp"
+                android:text="•"
+                android:textColor="#4B5563"
+                android:textSize="11sp" />
+
+            <TextView
+                android:id="@+id/tvRowTime"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="1 天前"
+                android:textColor="#9CA3AF"
+                android:textSize="11sp" />
+        </LinearLayout>
+    </LinearLayout>
 
     <!-- Action Menu Button (...) -->
     <ImageView
