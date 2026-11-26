@@ -334,7 +334,7 @@ public class PersonalSpaceActivity extends AppCompatActivity {
                 String serverUrl = apiClient.getServerUrl();
                 OkHttpClient client = apiClient.getOkHttpClient();
                 Request request = new Request.Builder()
-                        .url(serverUrl + "/api/system/t3code/status")
+                        .url(serverUrl + "/api/system/code-studio/status")
                         .addHeader("Authorization", "Bearer " + apiClient.getToken())
                         .get()
                         .build();
@@ -375,7 +375,7 @@ public class PersonalSpaceActivity extends AppCompatActivity {
                 String serverUrl = apiClient.getServerUrl();
                 OkHttpClient client = apiClient.getOkHttpClient();
                 Request request = new Request.Builder()
-                        .url(serverUrl + "/api/system/t3code/diff")
+                        .url(serverUrl + "/api/system/code-studio/diff")
                         .addHeader("Authorization", "Bearer " + apiClient.getToken())
                         .get()
                         .build();
@@ -413,7 +413,7 @@ public class PersonalSpaceActivity extends AppCompatActivity {
                 payload.addProperty("message", msg);
 
                 Request request = new Request.Builder()
-                        .url(serverUrl + "/api/system/t3code/commit")
+                        .url(serverUrl + "/api/system/code-studio/commit")
                         .addHeader("Authorization", "Bearer " + apiClient.getToken())
                         .post(RequestBody.create(payload.toString(), MediaType.parse("application/json; charset=utf-8")))
                         .build();
