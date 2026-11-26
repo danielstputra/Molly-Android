@@ -421,8 +421,12 @@ public class MarkdownHelper {
                 sb.append(title);
                 int end = sb.length();
 
-                if (url != null && !url.isEmpty()) {
-                    sb.setSpan(new URLSpan(url), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                if (url != null && !url.trim().isEmpty()) {
+                    String targetUrl = url.trim();
+                    if (!targetUrl.contains("://") && !targetUrl.startsWith("mailto:") && !targetUrl.startsWith("tel:")) {
+                        targetUrl = "https://" + targetUrl;
+                    }
+                    sb.setSpan(new URLSpan(targetUrl), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                 }
                 sb.setSpan(new ForegroundColorSpan(COLOR_CYAN), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                 sb.setSpan(new UnderlineSpan(), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);

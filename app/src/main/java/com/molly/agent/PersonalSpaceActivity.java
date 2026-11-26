@@ -1,6 +1,8 @@
 package com.molly.agent;
 
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.LayoutInflater;
@@ -20,11 +22,19 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import com.molly.agent.api.MollyApiClient;
 import com.molly.agent.model.ArtifactItem;
 import com.molly.agent.model.WorkspaceFileItem;
 import com.molly.agent.ui.MollyDialog;
 import com.molly.agent.ui.ArtifactPreviewDialogHelper;
+
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -47,6 +57,19 @@ public class PersonalSpaceActivity extends AppCompatActivity {
     private TextView tabAllFiles;
     private TextView tabAgentFiles;
     private TextView tabProjectFiles;
+    private TextView tabGitChanges;
+
+    // Git Container Views
+    private LinearLayout llGitContainer;
+    private TextView tvGitBranchBadge;
+    private TextView tvGitCommitHash;
+    private TextView btnGitRefresh;
+    private EditText etGitCommitMsg;
+    private TextView btnGitCommit;
+    private TextView tvGitFilesSummary;
+    private TextView tvGitDiffContent;
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private final Gson gson = new Gson();
 
     private TextView tvBreadcrumbRoot;
     private TextView tvBreadcrumbSub;
@@ -93,6 +116,16 @@ public class PersonalSpaceActivity extends AppCompatActivity {
         tabAllFiles = findViewById(R.id.tabAllFiles);
         tabAgentFiles = findViewById(R.id.tabAgentFiles);
         tabProjectFiles = findViewById(R.id.tabProjectFiles);
+        tabGitChanges = findViewById(R.id.tabGitChanges);
+
+        llGitContainer = findViewById(R.id.llGitContainer);
+        tvGitBranchBadge = findViewById(R.id.tvGitBranchBadge);
+        tvGitCommitHash = findViewById(R.id.tvGitCommitHash);
+        btnGitRefresh = findViewById(R.id.btnGitRefresh);
+        etGitCommitMsg = findViewById(R.id.etGitCommitMsg);
+        btnGitCommit = findViewById(R.id.btnGitCommit);
+        tvGitFilesSummary = findViewById(R.id.tvGitFilesSummary);
+        tvGitDiffContent = findViewById(R.id.tvGitDiffContent);
 
         tvBreadcrumbRoot = findViewById(R.id.tvBreadcrumbRoot);
         tvBreadcrumbSub = findViewById(R.id.tvBreadcrumbSub);
@@ -185,6 +218,18 @@ public class PersonalSpaceActivity extends AppCompatActivity {
             loadFiles(currentDirectory, "");
         });
 
+        if (tabGitChanges != null) {
+            tabGitChanges.setOnClickListener(v -> {
+                setActiveTab(tabGitChanges);
+            });
+        }
+        if (btnGitRefresh != null) {
+            btnGitRefresh.setOnClickListener(v -> loadGitStatus());
+        }
+        if (btnGitCommit != null) {
+            btnGitCommit.setOnClickListener(v -> handleGitCommit());
+        }
+
         // Select all CheckBox
         cbSelectAll.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if (!buttonView.isPressed()) return;
@@ -260,9 +305,133 @@ public class PersonalSpaceActivity extends AppCompatActivity {
         tabAgentFiles.setTextColor(0xFF9CA3AF);
         tabProjectFiles.setBackgroundTintList(getColorStateList(R.color.card_dark));
         tabProjectFiles.setTextColor(0xFF9CA3AF);
+        if (tabGitChanges != null) {
+            tabGitChanges.setBackgroundTintList(getColorStateList(R.color.card_dark));
+            tabGitChanges.setTextColor(0xFF9CA3AF);
+        }
 
         activeTab.setBackgroundTintList(getColorStateList(R.color.primary_gold_dark));
         activeTab.setTextColor(getColor(R.color.primary_gold));
+
+        if (activeTab == tabGitChanges) {
+            if (swipeRefreshPersonalSpace != null) swipeRefreshPersonalSpace.setVisibility(View.GONE);
+            if (llEmptyState != null) llEmptyState.setVisibility(View.GONE);
+            if (llGitContainer != null) llGitContainer.setVisibility(View.VISIBLE);
+            tvBreadcrumbRoot.setText("🌿 Repositori Git");
+            tvBreadcrumbSub.setVisibility(View.GONE);
+            loadGitStatus();
+        } else {
+            if (llGitContainer != null) llGitContainer.setVisibility(View.GONE);
+            if (swipeRefreshPersonalSpace != null) swipeRefreshPersonalSpace.setVisibility(View.VISIBLE);
+            tvBreadcrumbRoot.setText("All files");
+        }
+    }
+
+    private void loadGitStatus() {
+        if (tvGitFilesSummary != null) tvGitFilesSummary.setText("Memuat status repositori Git...");
+        new Thread(() -> {
+            try {
+                String serverUrl = apiClient.getServerUrl();
+                OkHttpClient client = apiClient.getOkHttpClient();
+                Request request = new Request.Builder()
+                        .url(serverUrl + "/api/system/t3code/status")
+                        .addHeader("Authorization", "Bearer " + apiClient.getToken())
+                        .get()
+                        .build();
+
+                Response response = client.newCall(request).execute();
+                if (response.isSuccessful() && response.body() != null) {
+                    String body = response.body().string();
+                    JsonObject root = gson.fromJson(body, JsonObject.class);
+                    if (root != null && root.has("data") && root.get("data").isJsonObject()) {
+                        JsonObject data = root.getAsJsonObject("data");
+                        String branch = data.has("branch") ? data.get("branch").getAsString() : "main";
+                        String lastCommit = data.has("last_commit") ? data.get("last_commit").getAsString() : "";
+                        int modifiedCount = data.has("modified_files_count") ? data.get("modified_files_count").getAsInt() : 0;
+
+                        mainHandler.post(() -> {
+                            if (tvGitBranchBadge != null) tvGitBranchBadge.setText("🌿 " + branch);
+                            if (tvGitCommitHash != null && !lastCommit.isEmpty()) {
+                                tvGitCommitHash.setText("Commit: " + (lastCommit.length() > 7 ? lastCommit.substring(0, 7) : lastCommit));
+                            }
+                            if (tvGitFilesSummary != null) {
+                                tvGitFilesSummary.setText(modifiedCount > 0
+                                        ? "⚠️ " + modifiedCount + " berkas dimodifikasi di cabang ini"
+                                        : "✅ Working tree bersih, tidak ada perubahan kode.");
+                                tvGitFilesSummary.setTextColor(modifiedCount > 0 ? 0xFFFBBF24 : 0xFF34D399);
+                            }
+                        });
+                    }
+                }
+            } catch (Exception e) {
+                mainHandler.post(() -> {
+                    if (tvGitFilesSummary != null) tvGitFilesSummary.setText("Gagal memuat status: " + e.getMessage());
+                });
+            }
+        }).start();
+
+        new Thread(() -> {
+            try {
+                String serverUrl = apiClient.getServerUrl();
+                OkHttpClient client = apiClient.getOkHttpClient();
+                Request request = new Request.Builder()
+                        .url(serverUrl + "/api/system/t3code/diff")
+                        .addHeader("Authorization", "Bearer " + apiClient.getToken())
+                        .get()
+                        .build();
+
+                Response response = client.newCall(request).execute();
+                if (response.isSuccessful() && response.body() != null) {
+                    String body = response.body().string();
+                    JsonObject root = gson.fromJson(body, JsonObject.class);
+                    if (root != null && root.has("data") && root.get("data").isJsonObject()) {
+                        JsonObject data = root.getAsJsonObject("data");
+                        String diff = data.has("diff") ? data.get("diff").getAsString() : "";
+                        String stat = data.has("stat") ? data.get("stat").getAsString() : "";
+                        final String display = (!stat.isEmpty() ? stat + "\n\n" : "") + (!diff.isEmpty() ? diff : "(Tidak ada perbedaan kode aktif)");
+                        mainHandler.post(() -> {
+                            if (tvGitDiffContent != null) tvGitDiffContent.setText(display);
+                        });
+                    }
+                }
+            } catch (Exception ignored) {}
+        }).start();
+    }
+
+    private void handleGitCommit() {
+        String msg = etGitCommitMsg != null && etGitCommitMsg.getText() != null ? etGitCommitMsg.getText().toString().trim() : "";
+        if (msg.isEmpty()) {
+            Toast.makeText(this, "Tulis pesan commit terlebih dahulu", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        new Thread(() -> {
+            try {
+                String serverUrl = apiClient.getServerUrl();
+                OkHttpClient client = apiClient.getOkHttpClient();
+                JsonObject payload = new JsonObject();
+                payload.addProperty("message", msg);
+
+                Request request = new Request.Builder()
+                        .url(serverUrl + "/api/system/t3code/commit")
+                        .addHeader("Authorization", "Bearer " + apiClient.getToken())
+                        .post(RequestBody.create(payload.toString(), MediaType.parse("application/json; charset=utf-8")))
+                        .build();
+
+                Response response = client.newCall(request).execute();
+                if (response.isSuccessful()) {
+                    mainHandler.post(() -> {
+                        Toast.makeText(this, "Commit berhasil disimpan!", Toast.LENGTH_SHORT).show();
+                        if (etGitCommitMsg != null) etGitCommitMsg.setText("");
+                        loadGitStatus();
+                    });
+                } else {
+                    mainHandler.post(() -> Toast.makeText(this, "Gagal melakukan commit", Toast.LENGTH_SHORT).show());
+                }
+            } catch (Exception e) {
+                mainHandler.post(() -> Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+            }
+        }).start();
     }
 
     private void loadFiles(String path, String query) {

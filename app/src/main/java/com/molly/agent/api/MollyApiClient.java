@@ -42,6 +42,19 @@ public class MollyApiClient {
     private static final String PREF_NAME = "molly_config";
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
+    private static volatile MollyApiClient sInstance;
+
+    public static MollyApiClient getInstance(Context context) {
+        if (sInstance == null && context != null) {
+            synchronized (MollyApiClient.class) {
+                if (sInstance == null) {
+                    sInstance = new MollyApiClient(context.getApplicationContext());
+                }
+            }
+        }
+        return sInstance;
+    }
+
     private final SharedPreferences prefs;
     private final OkHttpClient client;
     private final Gson gson;
@@ -436,6 +449,14 @@ public class MollyApiClient {
 
     public String getServerUrl() {
         return getBaseUrl();
+    }
+
+    public OkHttpClient getOkHttpClient() {
+        return this.client;
+    }
+
+    public String getToken() {
+        return (this.token != null) ? this.token : "";
     }
 
     public String getBaseUrl() {

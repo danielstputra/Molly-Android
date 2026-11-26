@@ -173,6 +173,21 @@
             android:text="📂 Projects"
             android:textColor="#9CA3AF"
             android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/tabGitChanges"
+            android:layout_width="wrap_content"
+            android:layout_height="30dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/bg_action_pill"
+            android:backgroundTint="#242932"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:paddingHorizontal="12dp"
+            android:text="🌿 Git &amp; Diff"
+            android:textColor="#9CA3AF"
+            android:textSize="12sp" />
     </LinearLayout>
 
     <!-- Breadcrumb Navigation Bar (seperti di Video Frame 15) -->
@@ -339,6 +354,146 @@
             android:text="Folder saat ini kosong"
             android:textColor="#9CA3AF"
             android:textSize="14sp" />
+    </LinearLayout>
+
+    <!-- Git & Diff Container (Tampil saat tabGitChanges aktif) -->
+    <LinearLayout
+        android:id="@+id/llGitContainer"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:background="#111317"
+        android:visibility="gone">
+
+        <!-- Top Status Bar: Branch & Actions -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#181C22"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="14dp"
+            android:paddingVertical="10dp">
+
+            <TextView
+                android:id="@+id/tvGitBranchBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_action_pill"
+                android:backgroundTint="#2E2415"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="3dp"
+                android:text="🌿 main"
+                android:textColor="@color/primary_gold"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvGitCommitHash"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:fontFamily="monospace"
+                android:text=""
+                android:textColor="#9CA3AF"
+                android:textSize="11sp" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+
+            <TextView
+                android:id="@+id/btnGitRefresh"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_action_pill"
+                android:backgroundTint="#242932"
+                android:clickable="true"
+                android:focusable="true"
+                android:paddingHorizontal="10dp"
+                android:paddingVertical="4dp"
+                android:text="🔄 Segarkan"
+                android:textColor="#E5E7EB"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <!-- Quick Commit Bar -->
+        <LinearLayout
+            android:id="@+id/llGitCommitBar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#15181E"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="8dp">
+
+            <EditText
+                android:id="@+id/etGitCommitMsg"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_input_box"
+                android:hint="Pesan commit..."
+                android:textColor="#E5E7EB"
+                android:textColorHint="#6B7280"
+                android:textSize="12sp"
+                android:paddingHorizontal="10dp"
+                android:maxLines="1" />
+
+            <TextView
+                android:id="@+id/btnGitCommit"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/bg_action_pill"
+                android:backgroundTint="@color/primary_gold"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:paddingHorizontal="12dp"
+                android:text="Commit"
+                android:textColor="#111827"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Diff / Files ScrollView -->
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:fillViewport="true">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="12dp">
+
+                <TextView
+                    android:id="@+id/tvGitFilesSummary"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Memuat status repositori Git..."
+                    android:textColor="#9CA3AF"
+                    android:textSize="12sp"
+                    android:paddingBottom="8dp" />
+
+                <TextView
+                    android:id="@+id/tvGitDiffContent"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="#0D1117"
+                    android:fontFamily="monospace"
+                    android:padding="10dp"
+                    android:text=""
+                    android:textColor="#C9D1D9"
+                    android:textSize="11sp" />
+            </LinearLayout>
+        </ScrollView>
     </LinearLayout>
 
 </LinearLayout>

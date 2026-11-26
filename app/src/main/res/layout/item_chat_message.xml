@@ -101,7 +101,6 @@
                     android:lineSpacingExtra="3dp"
                     android:text="Agent response..."
                     android:textColor="@color/text_white"
-                    android:textIsSelectable="true"
                     android:textSize="14sp" />
 
                 <!-- Container untuk Rich Widgets, Code Blocks dengan tombol Menyalin, Prompt Cards, dan Forms -->

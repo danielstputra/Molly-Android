@@ -427,6 +427,14 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
             });
         }
 
+        View btnDrawerCodingStudio = findViewById(R.id.btnDrawerCodingStudio);
+        if (btnDrawerCodingStudio != null) {
+            btnDrawerCodingStudio.setOnClickListener(v -> {
+                drawerLayout.closeDrawers();
+                startActivity(new Intent(this, CodingStudioActivity.class));
+            });
+        }
+
         View btnDrawerProviders = findViewById(R.id.btnDrawerProviders);
         if (btnDrawerProviders != null) {
             btnDrawerProviders.setOnClickListener(v -> {

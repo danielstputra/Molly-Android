@@ -83,13 +83,13 @@ public class ChatWidgetViewHelper {
             return;
         }
 
-        // Cek apakah pesan memuat blok widget, blok kode, prompt, atau tabel terstruktur
+        // Cek apakah pesan memuat blok widget, blok kode, prompt, tabel terstruktur, atau gambar markdown
         Matcher matcher = FENCED_BLOCK_PATTERN.matcher(rawText);
         boolean hasFenced = matcher.find();
-        boolean hasPromptWord = rawText.toLowerCase().contains("prompt:");
         boolean hasTable = checkHasTable(rawText);
+        boolean hasMdImage = Pattern.compile("(?m)^\\s*!\\[.*?\\]\\(.*?\\)").matcher(rawText).find();
 
-        if (!hasFenced && !hasPromptWord && !hasTable) {
+        if (!hasFenced && !hasTable && !hasMdImage) {
             // Teks markdown murni biasa
             if (tvMessage != null) {
                 tvMessage.setVisibility(View.VISIBLE);
@@ -101,25 +101,9 @@ public class ChatWidgetViewHelper {
 
         List<View> generatedViews = new ArrayList<>();
 
-        if (!hasFenced && hasTable && !hasPromptWord) {
-            // Teks memuat tabel tanpa fenced block
+        if (!hasFenced && (hasTable || hasMdImage)) {
+            // Teks memuat tabel atau gambar markdown tanpa fenced block
             appendSegmentViews(context, rawText, generatedViews);
-        } else if (!hasFenced && hasPromptWord) {
-            // Kasus Khusus: Teks memiliki section "Prompt:" tanpa fenced backticks (Gambar 2)
-            Pattern unenclosedPromptPattern = Pattern.compile("(?is)(.*?)(?:^|\\n)\\s*(?:>\\s*)?(?:prompt|prompt siap pakai[^:]*):\\s*\\n?([\\s\\S]+)$");
-            Matcher upm = unenclosedPromptPattern.matcher(rawText);
-            if (upm.find()) {
-                String intro = upm.group(1) != null ? upm.group(1).trim() : "";
-                String promptText = upm.group(2) != null ? upm.group(2).trim() : "";
-                if (!intro.isEmpty()) {
-                    appendSegmentViews(context, intro, generatedViews);
-                }
-                if (!promptText.isEmpty()) {
-                    generatedViews.add(createPromptWidgetView(context, "Prompt:", promptText));
-                }
-            } else {
-                appendSegmentViews(context, rawText, generatedViews);
-            }
         } else {
             // Terdapat blok fenced (```widget, ```prompt, ```code, dll): lakukan parsing terstruktur
             matcher.reset();
@@ -316,11 +300,12 @@ public class ChatWidgetViewHelper {
 
         // Prompt text box
         TextView tvPrompt = new TextView(context);
-        tvPrompt.setText(promptContent);
+        tvPrompt.setText(MarkdownHelper.render(context, promptContent));
         tvPrompt.setTextColor(0xFFE2E8F0);
         tvPrompt.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
         tvPrompt.setTypeface(Typeface.MONOSPACE);
-        tvPrompt.setTextIsSelectable(true);
+        tvPrompt.setMovementMethod(android.text.method.LinkMovementMethod.getInstance());
+        tvPrompt.setLinkTextColor(0xFF38BDF8);
         tvPrompt.setBackgroundResource(R.drawable.bg_prompt_widget);
         int innerPad = dpToPx(context, 8);
         tvPrompt.setPadding(innerPad, innerPad, innerPad, innerPad);
@@ -473,6 +458,10 @@ public class ChatWidgetViewHelper {
 
             case "Image": {
                 return buildImageView(context, node);
+            }
+
+            case "Video": {
+                return buildVideoView(context, node);
             }
 
             case "ImageGroup": {
@@ -980,9 +969,18 @@ public class ChatWidgetViewHelper {
         layout.setOrientation(LinearLayout.VERTICAL);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        lp.topMargin = dpToPx(context, 6);
-        lp.bottomMargin = dpToPx(context, 6);
+        lp.topMargin = dpToPx(context, 8);
+        lp.bottomMargin = dpToPx(context, 8);
         layout.setLayoutParams(lp);
+
+        // Container kartu gambar dengan background elegan dan rounded corners
+        GradientDrawable cardBg = new GradientDrawable();
+        cardBg.setShape(GradientDrawable.RECTANGLE);
+        cardBg.setColor(0xFF14171E);
+        cardBg.setCornerRadius(dpToPx(context, 12));
+        cardBg.setStroke(dpToPx(context, 1), 0xFF2A2E37);
+        layout.setBackground(cardBg);
+        layout.setPadding(dpToPx(context, 8), dpToPx(context, 8), dpToPx(context, 8), dpToPx(context, 8));
 
         ImageView iv = new ImageView(context);
         iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
@@ -991,7 +989,9 @@ public class ChatWidgetViewHelper {
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         iv.setLayoutParams(ivLp);
 
-        // Jika gambar berupa data:image Base64
+        final String displayTitle = !caption.isEmpty() ? caption : alt;
+
+        // 1. Jika gambar berupa data:image Base64
         if (src.startsWith("data:image/") && src.contains(";base64,")) {
             try {
                 String base64Data = src.substring(src.indexOf(";base64,") + 8);
@@ -999,27 +999,261 @@ public class ChatWidgetViewHelper {
                 Bitmap bitmap = BitmapFactory.decodeByteArray(decoded, 0, decoded.length);
                 if (bitmap != null) {
                     iv.setImageBitmap(bitmap);
+                    iv.setOnClickListener(v -> showFullScreenImageDialog(context, bitmap, displayTitle));
                 }
             } catch (Exception ignored) {}
+        } else if (!src.isEmpty() || !path.isEmpty()) {
+            // 2. Muat gambar secara asinkron dari URL atau berkas server/workspace
+            loadImageAsync(context, iv, src, path, displayTitle);
         } else {
-            // Placeholder visual untuk gambar yang tersimpan di workspace
+            // Placeholder visual default
             iv.setImageResource(R.drawable.ic_intro_agent);
             iv.setColorFilter(0xFF38BDF8);
         }
 
         layout.addView(iv);
 
-        if (!caption.isEmpty() || !alt.isEmpty()) {
+        if (!displayTitle.isEmpty()) {
             TextView tvCap = new TextView(context);
-            tvCap.setText(!caption.isEmpty() ? caption : alt);
-            tvCap.setTextColor(0xFF9CA3AF);
-            tvCap.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+            tvCap.setText(displayTitle);
+            tvCap.setTextColor(0xFF94A3B8);
+            tvCap.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
             tvCap.setGravity(Gravity.CENTER);
-            tvCap.setPadding(0, dpToPx(context, 4), 0, 0);
+            tvCap.setPadding(dpToPx(context, 6), dpToPx(context, 6), dpToPx(context, 6), dpToPx(context, 2));
             layout.addView(tvCap);
         }
 
         return layout;
+    }
+
+    private static void loadImageAsync(Context context, ImageView iv, String rawUrl, String path, String caption) {
+        iv.setImageResource(R.drawable.ic_intro_agent);
+        iv.setColorFilter(0x6638BDF8);
+
+        com.molly.agent.api.MollyApiClient apiClient = com.molly.agent.api.MollyApiClient.getInstance(context);
+        String serverUrl = apiClient != null ? apiClient.getServerUrl() : "";
+        String targetUrl = "";
+
+        if (rawUrl != null && !rawUrl.trim().isEmpty()) {
+            targetUrl = rawUrl.trim();
+            if (targetUrl.startsWith("/")) {
+                if (serverUrl.endsWith("/")) {
+                    targetUrl = serverUrl + targetUrl.substring(1);
+                } else {
+                    targetUrl = serverUrl + targetUrl;
+                }
+            }
+        } else if (path != null && !path.trim().isEmpty()) {
+            String cleanPath = path.trim();
+            try {
+                targetUrl = serverUrl + "/api/system/mobile/workspace/download?path=" + java.net.URLEncoder.encode(cleanPath, "UTF-8");
+            } catch (Exception ignored) {
+                targetUrl = serverUrl + "/api/system/mobile/workspace/download?path=" + cleanPath;
+            }
+        }
+
+        if (targetUrl.isEmpty()) {
+            iv.setColorFilter(0xFF38BDF8);
+            return;
+        }
+
+        final String finalUrl = targetUrl;
+        final android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+
+        new Thread(() -> {
+            try {
+                okhttp3.OkHttpClient client = apiClient != null && apiClient.getOkHttpClient() != null
+                        ? apiClient.getOkHttpClient()
+                        : new okhttp3.OkHttpClient.Builder()
+                                .connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+                                .readTimeout(20, java.util.concurrent.TimeUnit.SECONDS)
+                                .build();
+
+                okhttp3.Request.Builder reqBuilder = new okhttp3.Request.Builder()
+                        .url(finalUrl)
+                        .addHeader("User-Agent", "Molly-Android")
+                        .addHeader("Bypass-Tunnel-Reminder", "true")
+                        .addHeader("ngrok-skip-browser-warning", "true");
+
+                if (apiClient != null && apiClient.getToken() != null && !apiClient.getToken().isEmpty()) {
+                    reqBuilder.addHeader("Authorization", "Bearer " + apiClient.getToken());
+                }
+
+                okhttp3.Response response = client.newCall(reqBuilder.build()).execute();
+                if (response.isSuccessful() && response.body() != null) {
+                    byte[] bytes = response.body().bytes();
+                    if (bytes != null && bytes.length > 0) {
+                        Bitmap bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+                        if (bitmap != null) {
+                            mainHandler.post(() -> {
+                                iv.clearColorFilter();
+                                iv.setImageBitmap(bitmap);
+                                iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
+                                iv.setAdjustViewBounds(true);
+                                iv.setOnClickListener(v -> showFullScreenImageDialog(context, bitmap, caption));
+                            });
+                            return;
+                        }
+                    }
+                }
+            } catch (Exception ignored) {}
+
+            mainHandler.post(() -> {
+                iv.setImageResource(R.drawable.ic_intro_agent);
+                iv.setColorFilter(0xFF38BDF8);
+            });
+        }).start();
+    }
+
+    public static void showFullScreenImageDialog(Context context, Bitmap bitmap, String title) {
+        if (context == null || bitmap == null) return;
+        Dialog dialog = new Dialog(context, android.R.style.Theme_Black_NoTitleBar_Fullscreen);
+        FrameLayout root = new FrameLayout(context);
+        root.setBackgroundColor(0xF00F1115);
+
+        ImageView fullIv = new ImageView(context);
+        fullIv.setImageBitmap(bitmap);
+        fullIv.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        FrameLayout.LayoutParams ivLp = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+        root.addView(fullIv, ivLp);
+
+        if (title != null && !title.trim().isEmpty()) {
+            TextView tvTitle = new TextView(context);
+            tvTitle.setText(title);
+            tvTitle.setTextColor(0xFFE2E8F0);
+            tvTitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+            tvTitle.setPadding(dpToPx(context, 16), dpToPx(context, 20), dpToPx(context, 60), dpToPx(context, 12));
+            tvTitle.setBackgroundColor(0xAA000000);
+            FrameLayout.LayoutParams tLp = new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP);
+            root.addView(tvTitle, tLp);
+        }
+
+        ImageView btnClose = new ImageView(context);
+        btnClose.setImageResource(R.drawable.ic_close);
+        btnClose.setColorFilter(0xFFFFFFFF);
+        btnClose.setPadding(dpToPx(context, 12), dpToPx(context, 12), dpToPx(context, 12), dpToPx(context, 12));
+        FrameLayout.LayoutParams cLp = new FrameLayout.LayoutParams(
+                dpToPx(context, 48), dpToPx(context, 48), Gravity.TOP | Gravity.END);
+        cLp.topMargin = dpToPx(context, 10);
+        cLp.rightMargin = dpToPx(context, 10);
+        btnClose.setOnClickListener(v -> dialog.dismiss());
+        root.addView(btnClose, cLp);
+
+        dialog.setContentView(root);
+        dialog.show();
+    }
+
+    private static View buildVideoView(Context context, JsonObject node) {
+        String src = node.has("src") ? node.get("src").getAsString() : "";
+        String poster = node.has("poster") ? node.get("poster").getAsString() : "";
+        String caption = node.has("caption") ? node.get("caption").getAsString() : "Video Sinematik AI";
+
+        LinearLayout layout = new LinearLayout(context);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.topMargin = dpToPx(context, 8);
+        lp.bottomMargin = dpToPx(context, 8);
+        layout.setLayoutParams(lp);
+
+        GradientDrawable cardBg = new GradientDrawable();
+        cardBg.setShape(GradientDrawable.RECTANGLE);
+        cardBg.setColor(0xFF14171E);
+        cardBg.setCornerRadius(dpToPx(context, 12));
+        cardBg.setStroke(dpToPx(context, 1), 0xFF2A2E37);
+        layout.setBackground(cardBg);
+        layout.setPadding(dpToPx(context, 8), dpToPx(context, 8), dpToPx(context, 8), dpToPx(context, 8));
+
+        // Frame container untuk thumbnail dan tombol play di tengah
+        FrameLayout videoFrame = new FrameLayout(context);
+        LinearLayout.LayoutParams frameLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        videoFrame.setLayoutParams(frameLp);
+
+        ImageView ivPoster = new ImageView(context);
+        ivPoster.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        ivPoster.setAdjustViewBounds(true);
+        FrameLayout.LayoutParams ivLp = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        videoFrame.addView(ivPoster, ivLp);
+
+        // Muat gambar poster thumbnail
+        if (!poster.isEmpty()) {
+            loadImageAsync(context, ivPoster, poster, "", caption);
+        } else {
+            ivPoster.setImageResource(R.drawable.ic_intro_agent);
+            ivPoster.setColorFilter(0x6638BDF8);
+        }
+
+        // Overlay Tombol Putar (Play Button)
+        LinearLayout playButtonPill = new LinearLayout(context);
+        playButtonPill.setOrientation(LinearLayout.HORIZONTAL);
+        playButtonPill.setGravity(Gravity.CENTER);
+        GradientDrawable playBg = new GradientDrawable();
+        playBg.setShape(GradientDrawable.RECTANGLE);
+        playBg.setColor(0xCC0F172A);
+        playBg.setCornerRadius(dpToPx(context, 20));
+        playBg.setStroke(dpToPx(context, 1), 0xFFF3BA32);
+        playButtonPill.setBackground(playBg);
+        playButtonPill.setPadding(dpToPx(context, 14), dpToPx(context, 8), dpToPx(context, 16), dpToPx(context, 8));
+
+        TextView tvPlay = new TextView(context);
+        tvPlay.setText("▶  PUTAR VIDEO SINEMATIK");
+        tvPlay.setTextColor(0xFFF3BA32);
+        tvPlay.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        tvPlay.setTypeface(Typeface.DEFAULT_BOLD);
+        playButtonPill.addView(tvPlay);
+
+        FrameLayout.LayoutParams pbLp = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER);
+        videoFrame.addView(playButtonPill, pbLp);
+
+        // Klik untuk memutar video
+        videoFrame.setOnClickListener(v -> openVideoPlayer(context, src, caption));
+        layout.addView(videoFrame);
+
+        if (!caption.isEmpty()) {
+            TextView tvCap = new TextView(context);
+            tvCap.setText(caption);
+            tvCap.setTextColor(0xFF94A3B8);
+            tvCap.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+            tvCap.setGravity(Gravity.CENTER);
+            tvCap.setPadding(dpToPx(context, 6), dpToPx(context, 6), dpToPx(context, 6), dpToPx(context, 2));
+            layout.addView(tvCap);
+        }
+
+        return layout;
+    }
+
+    private static void openVideoPlayer(Context context, String videoUrl, String title) {
+        if (context == null || videoUrl == null || videoUrl.trim().isEmpty()) return;
+        String fullUrl = videoUrl.trim();
+        if (fullUrl.startsWith("/")) {
+            com.molly.agent.api.MollyApiClient apiClient = com.molly.agent.api.MollyApiClient.getInstance(context);
+            String baseUrl = apiClient != null ? apiClient.getServerUrl() : "";
+            if (baseUrl.endsWith("/")) {
+                fullUrl = baseUrl + fullUrl.substring(1);
+            } else {
+                fullUrl = baseUrl + fullUrl;
+            }
+        }
+
+        try {
+            android.content.Intent intent = new android.content.Intent(android.content.Intent.ACTION_VIEW);
+            intent.setDataAndType(android.net.Uri.parse(fullUrl), "video/mp4");
+            intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+            context.startActivity(intent);
+        } catch (Exception e) {
+            try {
+                android.content.Intent webIntent = new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(fullUrl));
+                webIntent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+                context.startActivity(webIntent);
+            } catch (Exception ignored) {
+                Toast.makeText(context, "Membuka video: " + fullUrl, Toast.LENGTH_SHORT).show();
+            }
+        }
     }
 
     private static View buildImageGroupView(Context context, JsonObject node) {
@@ -1153,7 +1387,6 @@ public class ChatWidgetViewHelper {
         tv.setTextColor(0xFFFFFFFF);
         tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         tv.setLineSpacing(dpToPx(context, 3), 1.0f);
-        tv.setTextIsSelectable(true);
         tv.setMovementMethod(android.text.method.LinkMovementMethod.getInstance());
         tv.setLinkTextColor(0xFF38BDF8);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
@@ -1180,9 +1413,12 @@ public class ChatWidgetViewHelper {
         String[] lines = textSegment.split("\\r?\\n", -1);
         List<String> curProse = new ArrayList<>();
         int i = 0;
+        Pattern mdImgPattern = Pattern.compile("!\\[(.*?)\\]\\((.*?)\\)");
 
         while (i < lines.length) {
             String line = lines[i];
+
+            // 1. Deteksi Tabel Markdown
             if (i + 1 < lines.length && line.contains("|") && MarkdownHelper.isTableDelimiterLine(lines[i + 1])) {
                 if (!curProse.isEmpty()) {
                     String pText = joinLines(curProse).trim();
@@ -1205,6 +1441,40 @@ public class ChatWidgetViewHelper {
                 if (tableView != null) {
                     outViews.add(tableView);
                 }
+                continue;
+            }
+
+            // 2. Deteksi Gambar Markdown: ![alt](url)
+            Matcher imgMatcher = mdImgPattern.matcher(line);
+            if (imgMatcher.find()) {
+                String beforeImg = line.substring(0, imgMatcher.start()).trim();
+                String afterImg = line.substring(imgMatcher.end()).trim();
+                if (!beforeImg.isEmpty()) {
+                    curProse.add(beforeImg);
+                }
+                if (!curProse.isEmpty()) {
+                    String pText = joinLines(curProse).trim();
+                    if (!pText.isEmpty()) {
+                        outViews.add(createProseTextView(context, pText));
+                    }
+                    curProse.clear();
+                }
+
+                String alt = imgMatcher.group(1);
+                String src = imgMatcher.group(2);
+                JsonObject imgNode = new JsonObject();
+                imgNode.addProperty("type", "Image");
+                imgNode.addProperty("src", src);
+                imgNode.addProperty("alt", alt);
+                imgNode.addProperty("caption", alt);
+                View imgView = buildImageView(context, imgNode);
+                if (imgView != null) {
+                    outViews.add(imgView);
+                }
+                if (!afterImg.isEmpty()) {
+                    curProse.add(afterImg);
+                }
+                i++;
                 continue;
             }
 
