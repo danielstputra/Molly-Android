@@ -6,45 +6,77 @@
     android:orientation="vertical"
     android:paddingHorizontal="32dp">
 
-    <ImageView
-        android:id="@+id/ivIntroIllustration"
-        android:layout_width="140dp"
-        android:layout_height="140dp"
-        android:contentDescription="Ilustrasi Fitur"
-        android:src="@drawable/ic_intro_agent" />
+    <!-- Interactive Animated Illustration Container -->
+    <FrameLayout
+        android:id="@+id/flIllustrationContainer"
+        android:layout_width="200dp"
+        android:layout_height="200dp"
+        android:layout_gravity="center">
 
+        <!-- Ambient Golden Aura Glow -->
+        <View
+            android:id="@+id/vIntroAura"
+            android:layout_width="190dp"
+            android:layout_height="190dp"
+            android:layout_gravity="center"
+            android:background="@drawable/bg_intro_aura" />
+
+        <!-- Outer Subtle Ring -->
+        <View
+            android:id="@+id/vIntroRing"
+            android:layout_width="160dp"
+            android:layout_height="160dp"
+            android:layout_gravity="center"
+            android:background="@drawable/bg_splash_ring" />
+
+        <!-- Main Feature Illustration Icon -->
+        <ImageView
+            android:id="@+id/ivIntroIllustration"
+            android:layout_width="110dp"
+            android:layout_height="110dp"
+            android:layout_gravity="center"
+            android:contentDescription="Ilustrasi Fitur"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_intro_agent" />
+    </FrameLayout>
+
+    <!-- Tagline Badge -->
     <TextView
         android:id="@+id/tvIntroTagline"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="28dp"
+        android:layout_marginTop="32dp"
         android:background="@drawable/bg_action_pill"
-        android:backgroundTint="#26F3BA32"
-        android:paddingHorizontal="14dp"
-        android:paddingVertical="4dp"
+        android:backgroundTint="#24F3BA32"
+        android:letterSpacing="0.06"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="6dp"
         android:text="Agen Cerdas Otonom"
         android:textColor="@color/primary_gold"
         android:textSize="12sp"
         android:textStyle="bold" />
 
+    <!-- Feature Title -->
     <TextView
         android:id="@+id/tvIntroTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:gravity="center"
+        android:letterSpacing="0.02"
         android:text="Mengenal Molly Agent"
         android:textColor="@color/text_white"
-        android:textSize="22sp"
+        android:textSize="23sp"
         android:textStyle="bold" />
 
+    <!-- Description -->
     <TextView
         android:id="@+id/tvIntroDescription"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="14dp"
+        android:layout_marginTop="12dp"
         android:gravity="center"
-        android:lineSpacingExtra="5dp"
+        android:lineSpacingExtra="6dp"
         android:text="Molly adalah platform kecerdasan buatan otonom untuk otomatisasi alur kerja, analisis mendalam, dan eksekusi tugas enterprise."
         android:textColor="@color/text_muted"
         android:textSize="14sp" />

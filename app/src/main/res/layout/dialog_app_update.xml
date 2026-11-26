@@ -75,6 +75,20 @@
             android:text="• Fitur Ruang Kerja Pribadi (Personal Space)\n• Accordion Thinking &amp; Tool Calls\n• Realtime Auto-Update"
             android:textColor="#E5E7EB"
             android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/tvViewFullChangelog"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:background="?selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:paddingVertical="4dp"
+            android:text="📜 Lihat Riwayat Versi Lengkap ❯"
+            android:textColor="#38BDF8"
+            android:textSize="11sp"
+            android:textStyle="bold" />
     </LinearLayout>
 
     <!-- Progress Indicator saat Mengunduh -->

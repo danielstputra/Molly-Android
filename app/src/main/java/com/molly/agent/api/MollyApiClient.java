@@ -10,11 +10,14 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.molly.agent.model.ArtifactItem;
+import com.molly.agent.model.AttachmentItem;
 import com.molly.agent.model.ChatMessage;
 import com.molly.agent.model.ChatSessionItem;
 import com.molly.agent.model.ChatDisplayItem;
 import com.molly.agent.model.ToolNameHelper;
 
+import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -29,6 +32,7 @@ import java.util.concurrent.TimeUnit;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.MediaType;
+import okhttp3.MultipartBody;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
@@ -128,9 +132,10 @@ public class MollyApiClient {
                 .addInterceptor(chain -> {
                     Request request = chain.request();
                     Response response = chain.proceed(request);
-                    if (response.code() == 401 || response.code() == 403) {
+                    if (response.code() == 401) {
                         String path = request.url().encodedPath();
-                        if (!path.contains("/download-apk") && !path.contains("/mobile-pairing-info")) {
+                        // Hanya pemicu logout jika verifikasi sesi utama gagal 401
+                        if (path.contains("/verify-session") || path.contains("/auth/status")) {
                             notifySessionExpired("Sesi login di Molly Web telah berakhir atau logout.");
                         }
                     }
@@ -152,6 +157,19 @@ public class MollyApiClient {
         this.selectedModelId = prefs.getString("selected_model_id", "ag-tools:gemini-4-hydrogen-medium");
         this.selectedModelName = prefs.getString("selected_model_name", "gemini-4-hydrogen-medium");
         this.selectedApprovalMode = prefs.getString("selected_approval_mode", "always_trust");
+
+        if (this.serverUrl == null || this.serverUrl.trim().isEmpty()) {
+            this.serverUrl = (this.tunnelUrl != null && !this.tunnelUrl.trim().isEmpty()) ? this.tunnelUrl : "";
+        }
+        if (this.serverUrl != null && !this.serverUrl.trim().isEmpty()) {
+            this.serverUrl = this.serverUrl.trim();
+            if (!this.serverUrl.startsWith("http://") && !this.serverUrl.startsWith("https://")) {
+                this.serverUrl = "http://" + this.serverUrl;
+            }
+            if (this.serverUrl.endsWith("/")) {
+                this.serverUrl = this.serverUrl.substring(0, this.serverUrl.length() - 1);
+            }
+        }
 
         // Jika sessionId kosong, biarkan kosong agar auto-create session berjalan saat kirim pesan pertama
         if (this.sessionId == null) {
@@ -417,7 +435,37 @@ public class MollyApiClient {
     }
 
     public String getServerUrl() {
-        return serverUrl;
+        return getBaseUrl();
+    }
+
+    public String getBaseUrl() {
+        if (serverUrl != null && !serverUrl.trim().isEmpty()) {
+            String u = serverUrl.trim();
+            if (!u.startsWith("http://") && !u.startsWith("https://")) {
+                u = "http://" + u;
+            }
+            if (u.endsWith("/")) {
+                u = u.substring(0, u.length() - 1);
+            }
+            this.serverUrl = u;
+            return u;
+        }
+        String url = prefs.getString("server_url", "");
+        if (url == null || url.trim().isEmpty()) {
+            url = (tunnelUrl != null && !tunnelUrl.trim().isEmpty()) ? tunnelUrl : prefs.getString("tunnel_url", "");
+        }
+        if (url == null) url = "";
+        url = url.trim();
+        if (!url.isEmpty() && !url.startsWith("http://") && !url.startsWith("https://")) {
+            url = "http://" + url;
+        }
+        if (url.endsWith("/")) {
+            url = url.substring(0, url.length() - 1);
+        }
+        if (!url.isEmpty()) {
+            this.serverUrl = url;
+        }
+        return url;
     }
 
     public String getSessionId() {
@@ -620,18 +668,95 @@ public class MollyApiClient {
      * aplikasi akan secara otomatis membuat sesi nyata di database via POST /api/v1/agents/sessions secara atomik
      * bersama input prompt pengguna, sehingga pengiriman dijamin 100% berhasil.
      */
+    /**
+     * Mengunggah berkas lampiran (Image, Dokumen, Audio, Video, Berkas) ke server Molly.
+     */
+    public void uploadAttachment(byte[] fileBytes, String fileName, String mimeType, ApiCallback<AttachmentItem> callback) {
+        if (!isConfigured()) {
+            callback.onError("Server belum dikonfigurasi.");
+            return;
+        }
+
+        String endpoint = serverUrl + "/api/system/mobile/upload-attachment";
+        String actualMime = (mimeType != null && !mimeType.isEmpty()) ? mimeType : "application/octet-stream";
+        String actualName = (fileName != null && !fileName.isEmpty()) ? fileName : "attachment";
+
+        RequestBody filePart = RequestBody.create(fileBytes, MediaType.parse(actualMime));
+        MultipartBody requestBody = new MultipartBody.Builder()
+                .setType(MultipartBody.FORM)
+                .addFormDataPart("file", actualName, filePart)
+                .build();
+
+        Request request = new Request.Builder()
+                .url(endpoint)
+                .addHeader("Authorization", "Bearer " + token)
+                .addHeader("Bypass-Tunnel-Reminder", "true")
+                .post(requestBody)
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                if (isLocalIp(serverUrl) && !tunnelUrl.isEmpty() && !tunnelUrl.equalsIgnoreCase(serverUrl)) {
+                    updateServerUrl(tunnelUrl);
+                    uploadAttachment(fileBytes, fileName, mimeType, callback);
+                    return;
+                }
+                mainHandler.post(() -> callback.onError("Gagal mengunggah berkas: " + e.getMessage()));
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                if (response.isSuccessful()) {
+                    try {
+                        String bodyStr = response.body() != null ? response.body().string() : "{}";
+                        JsonObject respJson = JsonParser.parseString(bodyStr).getAsJsonObject();
+                        AttachmentItem item = new AttachmentItem();
+                        if (respJson.has("file_id")) {
+                            item.setId(respJson.get("file_id").getAsString());
+                        } else if (respJson.has("id")) {
+                            item.setId(respJson.get("id").getAsString());
+                        }
+                        item.setFileName(respJson.has("filename") ? respJson.get("filename").getAsString() : actualName);
+                        item.setFileSize(respJson.has("bytes") ? respJson.get("bytes").getAsLong() : fileBytes.length);
+                        item.setMimeType(respJson.has("mime_type") ? respJson.get("mime_type").getAsString() : actualMime);
+                        item.setCategory(respJson.has("category") ? respJson.get("category").getAsString() : "file");
+                        if (respJson.has("image_url") && !respJson.get("image_url").isJsonNull()) {
+                            item.setImageUrl(respJson.get("image_url").getAsString());
+                        }
+                        if (respJson.has("thumbnail_url") && !respJson.get("thumbnail_url").isJsonNull()) {
+                            item.setThumbnailUrl(respJson.get("thumbnail_url").getAsString());
+                        }
+                        item.setUploaded(true);
+                        item.setUploading(false);
+                        mainHandler.post(() -> callback.onSuccess(item));
+                    } catch (Exception e) {
+                        mainHandler.post(() -> callback.onError("Gagal memproses respon berkas: " + e.getMessage()));
+                    }
+                } else {
+                    String errBody = response.body() != null ? response.body().string() : "";
+                    mainHandler.post(() -> callback.onError("Server error (" + response.code() + "): " + errBody));
+                }
+            }
+        });
+    }
+
     public void sendPrompt(String promptText, ApiCallback<String> callback) {
+        sendPrompt(promptText, null, callback);
+    }
+
+    public void sendPrompt(String promptText, List<AttachmentItem> attachments, ApiCallback<String> callback) {
         if (!isConfigured()) {
             callback.onError("Server belum dikonfigurasi.");
             return;
         }
 
         if (sessionId == null || sessionId.trim().isEmpty() || sessionId.equals("molly-guest-session") || sessionId.startsWith("local-") || sessionId.startsWith("draft-")) {
-            createSessionAndSendPrompt(promptText, callback);
+            createSessionAndSendPrompt(promptText, attachments, callback);
             return;
         }
 
-        executeSendPromptToExistingSession(promptText, new ApiCallback<String>() {
+        executeSendPromptToExistingSession(promptText, attachments, new ApiCallback<String>() {
             @Override
             public void onSuccess(String result) {
                 callback.onSuccess(result);
@@ -641,7 +766,7 @@ public class MollyApiClient {
             public void onError(String error) {
                 // Auto-healing: Jika 404 (Thread/Benang tidak ditemukan di DB), buat sesi baru secara otomatis
                 if (error != null && (error.contains("404") || error.contains("Benang") || error.toLowerCase().contains("not found"))) {
-                    createSessionAndSendPrompt(promptText, callback);
+                    createSessionAndSendPrompt(promptText, attachments, callback);
                 } else {
                     callback.onError(error);
                 }
@@ -650,9 +775,9 @@ public class MollyApiClient {
     }
 
     /**
-     * Mengirim event prompt ke sesi yang sudah ada di server.
+     * Mengirim event prompt ke sesi yang sudah ada di server (dengan lampiran berkas).
      */
-    private void executeSendPromptToExistingSession(String promptText, ApiCallback<String> callback) {
+    private void executeSendPromptToExistingSession(String promptText, List<AttachmentItem> attachments, ApiCallback<String> callback) {
         String endpoint = serverUrl + "/api/v1/agents/sessions/" + sessionId + "/events";
         String idempotencyKey = UUID.randomUUID().toString();
 
@@ -673,6 +798,18 @@ public class MollyApiClient {
         textObj.addProperty("text", promptText);
         content.add(textObj);
 
+        // Jika terdapat lampiran gambar dengan URL base64, tambahkan sebagai input_image
+        if (attachments != null) {
+            for (AttachmentItem att : attachments) {
+                if ("image".equalsIgnoreCase(att.getCategory()) && att.getImageUrl() != null && !att.getImageUrl().isEmpty()) {
+                    JsonObject imgObj = new JsonObject();
+                    imgObj.addProperty("type", "input_image");
+                    imgObj.addProperty("image_url", att.getImageUrl());
+                    content.add(imgObj);
+                }
+            }
+        }
+
         userMsg.add("content", content);
         input.add(userMsg);
         event.add("input", input);
@@ -681,6 +818,20 @@ public class MollyApiClient {
         molly.addProperty("mode", "follow_up");
         molly.addProperty("model", getNormalizedModelId());
         molly.addProperty("tool_approval_mode", getNormalizedApprovalMode());
+
+        // Lampirkan ID berkas ke molly.attachment_file_ids sesuai arsitektur Molly Web
+        if (attachments != null && !attachments.isEmpty()) {
+            JsonArray attIds = new JsonArray();
+            for (AttachmentItem att : attachments) {
+                if (att.getId() != null && !att.getId().isEmpty()) {
+                    attIds.add(att.getId());
+                }
+            }
+            if (attIds.size() > 0) {
+                molly.add("attachment_file_ids", attIds);
+            }
+        }
+
         event.add("molly", molly);
 
         events.add(event);
@@ -701,7 +852,7 @@ public class MollyApiClient {
                 if (isLocalIp(serverUrl) && !tunnelUrl.isEmpty() && !tunnelUrl.equalsIgnoreCase(serverUrl)) {
                     android.util.Log.w("MollyApiClient", "IP lokal timeout saat kirim prompt ke sesi. Auto-failover ke Tunnel: " + tunnelUrl);
                     updateServerUrl(tunnelUrl);
-                    executeSendPromptToExistingSession(promptText, callback);
+                    executeSendPromptToExistingSession(promptText, attachments, callback);
                     return;
                 }
                 mainHandler.post(() -> callback.onError("Koneksi gagal: " + e.getMessage()));
@@ -720,10 +871,10 @@ public class MollyApiClient {
     }
 
     /**
-     * Membuat sesi baru di server secara atomik dengan membawa pesan awal pengguna.
+     * Membuat sesi baru di server secara atomik dengan membawa pesan awal pengguna dan lampiran berkas.
      * Menggunakan API standar POST /api/v1/agents/sessions.
      */
-    public void createSessionAndSendPrompt(String promptText, ApiCallback<String> callback) {
+    public void createSessionAndSendPrompt(String promptText, List<AttachmentItem> attachments, ApiCallback<String> callback) {
         String endpoint = serverUrl + "/api/v1/agents/sessions";
         String idempotencyKey = UUID.randomUUID().toString();
 
@@ -754,7 +905,7 @@ public class MollyApiClient {
                 if (isLocalIp(serverUrl) && !tunnelUrl.isEmpty() && !tunnelUrl.equalsIgnoreCase(serverUrl)) {
                     android.util.Log.w("MollyApiClient", "IP lokal timeout saat buat sesi. Auto-failover ke Tunnel: " + tunnelUrl);
                     updateServerUrl(tunnelUrl);
-                    createSessionAndSendPrompt(promptText, callback);
+                    createSessionAndSendPrompt(promptText, attachments, callback);
                     return;
                 }
                 mainHandler.post(() -> callback.onError("Koneksi gagal: " + e.getMessage()));
@@ -769,6 +920,11 @@ public class MollyApiClient {
                         if (respJson.has("id")) {
                             String newThreadId = respJson.get("id").getAsString();
                             switchSession(newThreadId);
+                            // Jika ada lampiran berkas, kirimkan event lampiran ke sesi baru
+                            if (attachments != null && !attachments.isEmpty()) {
+                                executeSendPromptToExistingSession(promptText, attachments, callback);
+                                return;
+                            }
                         }
                         mainHandler.post(() -> callback.onSuccess("Pesan terkirim ke Molly"));
                     } catch (Exception e) {
@@ -925,6 +1081,7 @@ public class MollyApiClient {
 
                             String title = "Percakapan";
                             boolean isArch = archived;
+                            boolean isPin = false;
                             String model = "";
 
                             if (s.has("molly") && s.get("molly").isJsonObject()) {
@@ -934,6 +1091,9 @@ public class MollyApiClient {
                                 }
                                 if (m.has("archived")) {
                                     isArch = m.get("archived").getAsBoolean();
+                                }
+                                if (m.has("is_pinned") && !m.get("is_pinned").isJsonNull()) {
+                                    isPin = m.get("is_pinned").getAsBoolean();
                                 }
                                 if (m.has("model") && !m.get("model").isJsonNull()) {
                                     model = m.get("model").getAsString();
@@ -947,7 +1107,7 @@ public class MollyApiClient {
                                 } catch (Exception ignored) {}
                             }
 
-                            result.add(new ChatSessionItem(id, title, updated, isArch, "", "Molly Agent", model));
+                            result.add(new ChatSessionItem(id, title, updated, isArch, isPin, "", "Molly Agent", model));
                         }
                     }
                     mainHandler.post(() -> callback.onSuccess(result));
@@ -962,6 +1122,12 @@ public class MollyApiClient {
      * Mengambil riwayat percakapan sesi dan mengonversinya menjadi elemen tampilan real
      * (Pesan User, Respon Agen, Tool Machine Execution, dan CoT Thinking).
      */
+    /**
+     * Mengambil riwayat percakapan sesi dan mengonversinya menjadi elemen tampilan real
+     * (Pesan User, Respon Agen, Tool Machine Execution, dan CoT Thinking).
+     * Mendukung auto-pagination jika jumlah item > 100 agar pesan-pesan terbaru (termasuk turn akhir)
+     * tidak terpotong dan 100% sinkron dengan Web Molly.
+     */
     public void fetchSessionDisplayItems(ApiCallback<List<ChatDisplayItem>> callback) {
         if (!isConfigured()) {
             callback.onError("Server belum terhubung");
@@ -973,7 +1139,26 @@ public class MollyApiClient {
             return;
         }
 
-        String endpoint = serverUrl + "/api/v1/agents/sessions/" + sessionId + "/items?limit=100&order=asc";
+        fetchAllSessionElements(sessionId, null, new ArrayList<>(), new ApiCallback<List<JsonElement>>() {
+            @Override
+            public void onSuccess(List<JsonElement> allElements) {
+                List<ChatDisplayItem> list = parseElementsToDisplayList(allElements);
+                mainHandler.post(() -> callback.onSuccess(list));
+            }
+
+            @Override
+            public void onError(String error) {
+                mainHandler.post(() -> callback.onError(error));
+            }
+        });
+    }
+
+    private void fetchAllSessionElements(String targetSessionId, String afterId, List<JsonElement> accumulated, ApiCallback<List<JsonElement>> callback) {
+        String endpoint = serverUrl + "/api/v1/agents/sessions/" + targetSessionId + "/items?limit=100&order=asc";
+        if (afterId != null && !afterId.trim().isEmpty()) {
+            endpoint += "&after=" + afterId.trim();
+        }
+
         Request request = new Request.Builder()
                 .url(endpoint)
                 .addHeader("Authorization", "Bearer " + token)
@@ -984,37 +1169,85 @@ public class MollyApiClient {
         client.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                mainHandler.post(() -> callback.onError(e.getMessage()));
+                if (!accumulated.isEmpty()) {
+                    callback.onSuccess(accumulated);
+                } else {
+                    callback.onError(e.getMessage());
+                }
             }
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 if (response.code() == 404) {
-                    mainHandler.post(() -> callback.onSuccess(new ArrayList<>()));
+                    callback.onSuccess(accumulated);
                     return;
                 }
                 if (!response.isSuccessful()) {
-                    mainHandler.post(() -> callback.onError("Error: " + response.code()));
+                    if (!accumulated.isEmpty()) {
+                        callback.onSuccess(accumulated);
+                    } else {
+                        callback.onError("Error: " + response.code());
+                    }
                     return;
                 }
 
                 String bodyStr = response.body() != null ? response.body().string() : "{}";
-                List<ChatDisplayItem> list = parseItemsToDisplayList(bodyStr);
-                mainHandler.post(() -> callback.onSuccess(list));
+                try {
+                    JsonObject obj = JsonParser.parseString(bodyStr).getAsJsonObject();
+                    JsonArray data = obj.has("data") && obj.get("data").isJsonArray() ? obj.getAsJsonArray("data") : null;
+                    if (data != null) {
+                        for (JsonElement el : data) {
+                            accumulated.add(el);
+                        }
+                    }
+
+                    boolean hasMore = obj.has("has_more") && obj.get("has_more").isJsonPrimitive() && obj.get("has_more").getAsBoolean();
+                    String lastId = null;
+                    if (obj.has("last_id") && !obj.get("last_id").isJsonNull()) {
+                        lastId = obj.get("last_id").getAsString();
+                    } else if (data != null && data.size() > 0) {
+                        JsonObject lastObj = data.get(data.size() - 1).getAsJsonObject();
+                        if (lastObj.has("id")) {
+                            lastId = lastObj.get("id").getAsString();
+                        }
+                    }
+
+                    if (hasMore && lastId != null && !lastId.trim().isEmpty() && accumulated.size() < 1000) {
+                        fetchAllSessionElements(targetSessionId, lastId, accumulated, callback);
+                    } else {
+                        callback.onSuccess(accumulated);
+                    }
+                } catch (Exception e) {
+                    if (!accumulated.isEmpty()) {
+                        callback.onSuccess(accumulated);
+                    } else {
+                        callback.onError("Parse error: " + e.getMessage());
+                    }
+                }
             }
         });
     }
 
     public List<ChatDisplayItem> parseItemsToDisplayList(String jsonStr) {
-        List<ChatDisplayItem> list = new ArrayList<>();
+        List<JsonElement> elements = new ArrayList<>();
         try {
             JsonObject obj = JsonParser.parseString(jsonStr).getAsJsonObject();
-            JsonArray data = obj.getAsJsonArray("data");
-            if (data == null) return list;
+            JsonArray data = obj.has("data") && obj.get("data").isJsonArray() ? obj.getAsJsonArray("data") : null;
+            if (data != null) {
+                for (JsonElement el : data) elements.add(el);
+            }
+        } catch (Exception ignored) {}
+        return parseElementsToDisplayList(elements);
+    }
 
+    public List<ChatDisplayItem> parseElementsToDisplayList(List<JsonElement> data) {
+        List<ChatDisplayItem> list = new ArrayList<>();
+        if (data == null) return list;
+        try {
             SimpleDateFormat sdf = new SimpleDateFormat("HH:mm", Locale.getDefault());
             Map<String, ChatDisplayItem.SubToolCall> subToolCallsMap = new HashMap<>();
             ChatDisplayItem currentToolGroup = null;
+            List<ArtifactItem> pendingArtifacts = new ArrayList<>();
 
             for (JsonElement el : data) {
                 if (!el.isJsonObject()) continue;
@@ -1052,10 +1285,89 @@ public class MollyApiClient {
                         toolId = item.getAsJsonObject("function").get("name").getAsString();
                     }
 
-                    if (item.has("args")) {
-                        args = item.get("args").isJsonObject() ? item.get("args").toString() : item.get("args").getAsString();
+                    if (item.has("arguments")) {
+                        JsonElement argEl = item.get("arguments");
+                        if (argEl.isJsonObject() || argEl.isJsonArray()) {
+                            args = argEl.toString();
+                        } else if (argEl.isJsonPrimitive()) {
+                            args = argEl.getAsString();
+                        }
+                    } else if (item.has("args")) {
+                        JsonElement argEl = item.get("args");
+                        if (argEl.isJsonObject() || argEl.isJsonArray()) {
+                            args = argEl.toString();
+                        } else if (argEl.isJsonPrimitive()) {
+                            args = argEl.getAsString();
+                        }
                     } else if (item.has("function") && item.getAsJsonObject("function").has("arguments")) {
-                        args = item.getAsJsonObject("function").get("arguments").getAsString();
+                        JsonElement argEl = item.getAsJsonObject("function").get("arguments");
+                        if (argEl.isJsonObject() || argEl.isJsonArray()) {
+                            args = argEl.toString();
+                        } else if (argEl.isJsonPrimitive()) {
+                            args = argEl.getAsString();
+                        }
+                    }
+
+                    // Deteksi Artefak dari present_artifacts atau pembuatan berkas HTML/projek
+                    if ("present_artifacts".equalsIgnoreCase(toolId)) {
+                        try {
+                            if (!args.isEmpty()) {
+                                JsonElement argsEl = JsonParser.parseString(args);
+                                if (argsEl.isJsonObject()) {
+                                    JsonObject argsObj = argsEl.getAsJsonObject();
+                                    JsonArray arr = null;
+                                    if (argsObj.has("filepaths") && argsObj.get("filepaths").isJsonArray()) {
+                                        arr = argsObj.getAsJsonArray("filepaths");
+                                    } else if (argsObj.has("files") && argsObj.get("files").isJsonArray()) {
+                                        arr = argsObj.getAsJsonArray("files");
+                                    } else if (argsObj.has("artifacts") && argsObj.get("artifacts").isJsonArray()) {
+                                        arr = argsObj.getAsJsonArray("artifacts");
+                                    }
+                                    if (arr != null) {
+                                        for (JsonElement pEl : arr) {
+                                            String p = pEl.getAsString().trim();
+                                            if (!p.isEmpty()) {
+                                                addPendingArtifact(pendingArtifacts, p, sessionId);
+                                            }
+                                        }
+                                    } else if (argsObj.has("file_path")) {
+                                        String p = argsObj.get("file_path").getAsString().trim();
+                                        if (!p.isEmpty()) addPendingArtifact(pendingArtifacts, p, sessionId);
+                                    } else if (argsObj.has("path")) {
+                                        String p = argsObj.get("path").getAsString().trim();
+                                        if (!p.isEmpty()) addPendingArtifact(pendingArtifacts, p, sessionId);
+                                    }
+                                } else if (argsEl.isJsonArray()) {
+                                    for (JsonElement pEl : argsEl.getAsJsonArray()) {
+                                        String p = pEl.getAsString().trim();
+                                        if (!p.isEmpty()) {
+                                            addPendingArtifact(pendingArtifacts, p, sessionId);
+                                        }
+                                    }
+                                }
+                            }
+                        } catch (Exception ignored) {}
+                        // Sembunyikan present_artifacts dari daftar eksekusi alat mentah (sama seperti Web)
+                        continue;
+                    }
+
+                    if ("write_file".equalsIgnoreCase(toolId) || "create_file".equalsIgnoreCase(toolId) || "save_file".equalsIgnoreCase(toolId) || "edit_file".equalsIgnoreCase(toolId)) {
+                        try {
+                            if (!args.isEmpty()) {
+                                JsonElement argsEl = JsonParser.parseString(args);
+                                if (argsEl.isJsonObject()) {
+                                    JsonObject argsObj = argsEl.getAsJsonObject();
+                                    String fp = "";
+                                    if (argsObj.has("file_path")) fp = argsObj.get("file_path").getAsString().trim();
+                                    else if (argsObj.has("path")) fp = argsObj.get("path").getAsString().trim();
+                                    else if (argsObj.has("filepath")) fp = argsObj.get("filepath").getAsString().trim();
+                                    else if (argsObj.has("filename")) fp = argsObj.get("filename").getAsString().trim();
+                                    if (!fp.isEmpty() && (fp.endsWith(".html") || fp.endsWith(".htm") || fp.contains("artifact") || fp.endsWith(".md") || fp.endsWith(".json") || fp.endsWith(".png") || fp.endsWith(".jpg") || fp.endsWith(".pdf") || fp.endsWith(".css") || fp.endsWith(".js") || fp.endsWith(".svg"))) {
+                                        addPendingArtifact(pendingArtifacts, fp, sessionId);
+                                    }
+                                }
+                            }
+                        } catch (Exception ignored) {}
                     }
 
                     String status = item.has("status") ? item.get("status").getAsString() : "completed";
@@ -1150,6 +1462,7 @@ public class MollyApiClient {
                     }
 
                     String rawText = textBuilder.toString().trim();
+                    ChatDisplayItem agentItem = null;
                     if (!rawText.isEmpty()) {
                         // Deteksi CoT thinking tags <think>...</think>
                         if (rawText.contains("<think>") && rawText.contains("</think>")) {
@@ -1162,17 +1475,66 @@ public class MollyApiClient {
                                 list.add(ChatDisplayItem.createThinking(itemId + "_think", thinkingContent, timeStr));
                             }
                             if (!remainingText.isEmpty()) {
-                                list.add(new ChatDisplayItem(itemId, ChatDisplayItem.TYPE_AGENT, "agent", remainingText, timeStr));
+                                agentItem = new ChatDisplayItem(itemId, ChatDisplayItem.TYPE_AGENT, "agent", remainingText, timeStr);
+                                list.add(agentItem);
                             }
                         } else if (rawText.startsWith("<think>")) {
                             // Masih sedang berpikir (streaming)
                             String thinkingContent = rawText.substring(7).trim();
                             list.add(ChatDisplayItem.createThinking(itemId + "_think", thinkingContent, timeStr));
                         } else {
-                            list.add(new ChatDisplayItem(itemId, ChatDisplayItem.TYPE_AGENT, "agent", rawText, timeStr));
+                            agentItem = new ChatDisplayItem(itemId, ChatDisplayItem.TYPE_AGENT, "agent", rawText, timeStr);
+                            list.add(agentItem);
+                        }
+                    }
+
+                    // Tempelkan kartu artefak yang dihasilkan pada giliran agen ini
+                    if (agentItem != null && !pendingArtifacts.isEmpty()) {
+                        agentItem.setArtifacts(new ArrayList<>(pendingArtifacts));
+                        pendingArtifacts.clear();
+                    }
+
+                    // Fallback Cerdas: Deteksi berkas artefak yang disebutkan di pesan agen jika pendingArtifacts kosong
+                    if (agentItem != null && !agentItem.hasArtifacts() && !rawText.isEmpty()) {
+                        java.util.regex.Pattern filePattern = java.util.regex.Pattern.compile("(?:`|'|\"|\\b)([a-zA-Z0-9_\\-./]+\\.(html|htm|pdf|docx|xlsx|png|jpg|jpeg|svg|json|md|py|js|css|txt|csv))(?:`|'|\"|\\b)", java.util.regex.Pattern.CASE_INSENSITIVE);
+                        java.util.regex.Matcher matcher = filePattern.matcher(rawText);
+                        java.util.Set<String> detectedFiles = new java.util.HashSet<>();
+                        while (matcher.find()) {
+                            String fname = matcher.group(1);
+                            if (fname != null && !fname.trim().isEmpty()) {
+                                fname = fname.trim();
+                                String lower = fname.toLowerCase();
+                                if (!lower.startsWith("http") && !lower.contains("github.com") && !lower.contains("google.com") && !lower.endsWith(".com") && !lower.endsWith(".org") && !lower.endsWith(".net")) {
+                                    if (!detectedFiles.contains(lower)) {
+                                        detectedFiles.add(lower);
+                                        agentItem.addArtifact(new ArtifactItem(fname, sessionId));
+                                    }
+                                }
+                            }
                         }
                     }
                 }
+            }
+
+            // Jika masih ada sisa artefak di akhir giliran, tautkan ke item agen terakhir
+            if (!pendingArtifacts.isEmpty()) {
+                boolean attached = false;
+                for (int i = list.size() - 1; i >= 0; i--) {
+                    ChatDisplayItem it = list.get(i);
+                    if (it.getItemType() == ChatDisplayItem.TYPE_AGENT) {
+                        for (ArtifactItem art : pendingArtifacts) {
+                            it.addArtifact(art);
+                        }
+                        attached = true;
+                        break;
+                    }
+                }
+                if (!attached) {
+                    ChatDisplayItem standalone = new ChatDisplayItem(UUID.randomUUID().toString(), ChatDisplayItem.TYPE_AGENT, "agent", "", sdf.format(new Date()));
+                    standalone.setArtifacts(new ArrayList<>(pendingArtifacts));
+                    list.add(standalone);
+                }
+                pendingArtifacts.clear();
             }
         } catch (Exception ignored) {
         }
@@ -1233,6 +1595,63 @@ public class MollyApiClient {
     }
 
     /**
+     * Membatalkan putaran agen (turn) yang sedang berlangsung / streaming di server Molly.
+     */
+    public void cancelCurrentTurn(String turnId, ApiCallback<Boolean> callback) {
+        if (!isConfigured() || sessionId == null || sessionId.trim().isEmpty()) {
+            if (callback != null) callback.onError("Sesi tidak aktif");
+            return;
+        }
+
+        String endpoint = serverUrl + "/api/v1/agents/sessions/" + sessionId + "/events";
+        String idempotencyKey = UUID.randomUUID().toString();
+
+        JsonObject root = new JsonObject();
+        JsonArray events = new JsonArray();
+
+        JsonObject ev = new JsonObject();
+        ev.addProperty("type", "agent.session.input.cancel");
+
+        JsonObject cancelOpts = new JsonObject();
+        if (turnId != null && !turnId.isEmpty()) {
+            cancelOpts.addProperty("turn_id", turnId);
+        }
+        ev.add("molly", cancelOpts);
+
+        events.add(ev);
+        root.add("events", events);
+
+        RequestBody body = RequestBody.create(root.toString(), JSON);
+        Request request = new Request.Builder()
+                .url(endpoint)
+                .addHeader("Authorization", "Bearer " + token)
+                .addHeader("Idempotency-Key", idempotencyKey)
+                .addHeader("Bypass-Tunnel-Reminder", "true")
+                .post(body)
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                if (callback != null) {
+                    mainHandler.post(() -> callback.onError(e.getMessage()));
+                }
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) {
+                boolean ok = response.isSuccessful();
+                if (callback != null) {
+                    mainHandler.post(() -> {
+                        if (ok) callback.onSuccess(true);
+                        else callback.onError("Status " + response.code());
+                    });
+                }
+            }
+        });
+    }
+
+    /**
      * Mengarsipkan sesi di backend Molly.
      */
     public void archiveSession(String targetSessionId, ApiCallback<Boolean> callback) {
@@ -1261,6 +1680,52 @@ public class MollyApiClient {
                 mainHandler.post(() -> {
                     if (ok) callback.onSuccess(true);
                     else callback.onError("Gagal arsip: status " + response.code());
+                });
+            }
+        });
+    }
+
+    /**
+     * Memperbarui metadata sesi (Rename judul atau Toggle Pin to top) di backend Molly.
+     * Endpoint: POST /api/v1/agents/sessions/{sessionId}
+     */
+    public void updateSession(String targetSessionId, String newTitle, Boolean isPinned, ApiCallback<Boolean> callback) {
+        if (!isConfigured() || targetSessionId == null || targetSessionId.isEmpty()) {
+            callback.onError("Parameter tidak valid");
+            return;
+        }
+
+        String endpoint = serverUrl + "/api/v1/agents/sessions/" + targetSessionId;
+        JsonObject root = new JsonObject();
+        JsonObject mollyObj = new JsonObject();
+        if (newTitle != null) {
+            mollyObj.addProperty("title", newTitle);
+        }
+        if (isPinned != null) {
+            mollyObj.addProperty("is_pinned", isPinned);
+        }
+        root.add("molly", mollyObj);
+
+        RequestBody body = RequestBody.create(root.toString(), MediaType.parse("application/json; charset=utf-8"));
+        Request request = new Request.Builder()
+                .url(endpoint)
+                .addHeader("Authorization", "Bearer " + token)
+                .addHeader("Bypass-Tunnel-Reminder", "true")
+                .post(body)
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                mainHandler.post(() -> callback.onError(e.getMessage()));
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                boolean ok = response.isSuccessful();
+                mainHandler.post(() -> {
+                    if (ok) callback.onSuccess(true);
+                    else callback.onError("Gagal memperbarui sesi: status " + response.code());
                 });
             }
         });
@@ -2120,6 +2585,350 @@ public class MollyApiClient {
                     mainHandler.post(() -> callback.onSuccess(obj));
                 } catch (Exception ex) {
                     mainHandler.post(() -> callback.onError("Parse error: " + ex.getMessage()));
+                }
+            }
+        });
+    }
+
+    /**
+     * Mengambil konten mentah artefak/berkas (HTML, Markdown, kode, teks) untuk live preview.
+     */
+    public void fetchArtifactRaw(String artifactPath, ApiCallback<String> callback) {
+        String baseUrl = getBaseUrl();
+        if (baseUrl.isEmpty() || artifactPath == null || artifactPath.trim().isEmpty()) {
+            callback.onError("Server belum terhubung atau path berkas tidak valid");
+            return;
+        }
+
+        String rawPath = artifactPath.trim();
+        // Bersihkan prefix direktori sandbox lokal jika ada
+        if (rawPath.startsWith("/home/user/workspace/")) {
+            rawPath = rawPath.substring("/home/user/workspace/".length());
+        } else if (rawPath.startsWith("home/user/workspace/")) {
+            rawPath = rawPath.substring("home/user/workspace/".length());
+        }
+        if (!rawPath.startsWith("/")) {
+            rawPath = "/" + rawPath;
+        }
+
+        final String cleanWorkspacePath = rawPath;
+        // Jika berkas berada di ruang kerja permanen (saved_artifacts, projects) atau sesi tamu, langsung ambil dari workspace
+        boolean isWorkspaceDirect = cleanWorkspacePath.startsWith("/saved_artifacts/")
+                || cleanWorkspacePath.startsWith("/projects/")
+                || cleanWorkspacePath.startsWith("/workspace/")
+                || sessionId == null || sessionId.isEmpty() || sessionId.equals("molly-guest-session");
+
+        if (isWorkspaceDirect) {
+            fetchWorkspaceFileContent(cleanWorkspacePath, callback);
+            return;
+        }
+
+        String relativePath = cleanWorkspacePath.startsWith("/") ? cleanWorkspacePath.substring(1) : cleanWorkspacePath;
+        String encodedPath = relativePath;
+        try {
+            String[] segments = relativePath.split("/");
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < segments.length; i++) {
+                if (i > 0) sb.append("/");
+                sb.append(java.net.URLEncoder.encode(segments[i], "UTF-8").replace("+", "%20"));
+            }
+            encodedPath = sb.toString();
+        } catch (Exception ignored) {}
+
+        String endpoint = baseUrl + "/api/v1/agents/sessions/" + sessionId + "/artifacts/" + encodedPath + "?preview=true";
+
+        Request request = new Request.Builder()
+                .url(endpoint)
+                .addHeader("Authorization", "Bearer " + token)
+                .addHeader("Bypass-Tunnel-Reminder", "true")
+                .get()
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                fetchWorkspaceFileContent(cleanWorkspacePath, callback);
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                if (response.isSuccessful() && response.body() != null) {
+                    String raw = response.body().string();
+                    String content = extractCleanContent(raw);
+                    mainHandler.post(() -> callback.onSuccess(content));
+                } else {
+                    fetchWorkspaceFileContent(cleanWorkspacePath, callback);
+                }
+            }
+        });
+    }
+
+    private void addPendingArtifact(List<ArtifactItem> list, String path, String sessionId) {
+        if (path == null || path.trim().isEmpty() || list == null) return;
+        ArtifactItem newItem = new ArtifactItem(path.trim(), sessionId);
+        for (int i = 0; i < list.size(); i++) {
+            ArtifactItem existing = list.get(i);
+            if (existing.getName().equalsIgnoreCase(newItem.getName())) {
+                if (newItem.getPath() != null && (existing.getPath() == null || newItem.getPath().length() > existing.getPath().length())) {
+                    list.set(i, newItem);
+                }
+                return;
+            }
+        }
+        list.add(newItem);
+    }
+
+    private String extractCleanContent(String raw) {
+        if (raw == null || raw.trim().isEmpty()) return "";
+        String trimmed = raw.trim();
+        if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+            try {
+                JsonElement el = JsonParser.parseString(trimmed);
+                if (el.isJsonObject()) {
+                    JsonObject obj = el.getAsJsonObject();
+                    if (obj.has("content") && !obj.get("content").isJsonNull()) {
+                        return obj.get("content").getAsString();
+                    }
+                    if (obj.has("data")) {
+                        if (obj.get("data").isJsonObject() && obj.getAsJsonObject("data").has("content")) {
+                            return obj.getAsJsonObject("data").get("content").getAsString();
+                        } else if (obj.get("data").isJsonPrimitive()) {
+                            return obj.get("data").getAsString();
+                        }
+                    }
+                }
+            } catch (Exception ignored) {}
+        }
+        return raw;
+    }
+
+    private void fetchWorkspaceFileContent(String path, ApiCallback<String> callback) {
+        String baseUrl = getBaseUrl();
+        if (baseUrl.isEmpty() || (!baseUrl.startsWith("http://") && !baseUrl.startsWith("https://"))) {
+            mainHandler.post(() -> callback.onError("Server belum terhubung atau URL tidak valid"));
+            return;
+        }
+
+        String normalizedPath = (path != null && !path.trim().isEmpty()) ? path.trim() : "/";
+        if (normalizedPath.startsWith("/home/user/workspace/")) {
+            normalizedPath = normalizedPath.substring("/home/user/workspace/".length());
+        }
+        if (!normalizedPath.startsWith("/")) {
+            normalizedPath = "/" + normalizedPath;
+        }
+
+        executeWorkspaceFileFetch(baseUrl, normalizedPath, false, callback);
+    }
+
+    private void executeWorkspaceFileFetch(String baseUrl, String currentPath, boolean hasRetried, ApiCallback<String> callback) {
+        try {
+            if (baseUrl == null || (!baseUrl.startsWith("http://") && !baseUrl.startsWith("https://"))) {
+                mainHandler.post(() -> callback.onError("URL Server tidak valid"));
+                return;
+            }
+            String endpoint = baseUrl + "/api/system/mobile/workspace/file?path=" + java.net.URLEncoder.encode(currentPath, "UTF-8");
+            Request request = new Request.Builder()
+                    .url(endpoint)
+                    .addHeader("Authorization", "Bearer " + token)
+                    .addHeader("Bypass-Tunnel-Reminder", "true")
+                    .get()
+                    .build();
+
+            client.newCall(request).enqueue(new Callback() {
+                @Override
+                public void onFailure(Call call, IOException e) {
+                    mainHandler.post(() -> callback.onError("Gagal mengambil file: " + e.getMessage()));
+                }
+
+                @Override
+                public void onResponse(Call call, Response response) throws IOException {
+                    if (response.isSuccessful() && response.body() != null) {
+                        String bodyStr = response.body().string();
+                        String clean = extractCleanContent(bodyStr);
+                        mainHandler.post(() -> callback.onSuccess(clean));
+                    } else if (!hasRetried && response.code() == 404) {
+                        // Jika 404, coba alternatif /saved_artifacts/ atau root workspace
+                        String fileName = currentPath.contains("/") ? currentPath.substring(currentPath.lastIndexOf('/') + 1) : currentPath;
+                        String alternatePath = currentPath.startsWith("/saved_artifacts/") ? ("/" + fileName) : ("/saved_artifacts/" + fileName);
+                        executeWorkspaceFileFetch(baseUrl, alternatePath, true, callback);
+                    } else {
+                        mainHandler.post(() -> callback.onError("Error " + response.code() + " membaca berkas: " + currentPath));
+                    }
+                }
+            });
+        } catch (Exception e) {
+            mainHandler.post(() -> callback.onError("Error: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Mengunduh berkas artefak dan menyimpannya ke folder Downloads perangkat.
+     */
+    public void downloadArtifactFile(String artifactPath, String targetFileName, ApiCallback<File> callback) {
+        String baseUrl = getBaseUrl();
+        if (baseUrl.isEmpty() || artifactPath == null || artifactPath.trim().isEmpty()) {
+            callback.onError("Server belum terhubung atau path berkas tidak valid");
+            return;
+        }
+
+        String rawPath = artifactPath.trim();
+        if (rawPath.startsWith("/home/user/workspace/")) {
+            rawPath = rawPath.substring("/home/user/workspace/".length());
+        }
+        if (!rawPath.startsWith("/")) {
+            rawPath = "/" + rawPath;
+        }
+
+        final String cleanPath = rawPath;
+        boolean isWorkspaceDirect = cleanPath.startsWith("/saved_artifacts/")
+                || cleanPath.startsWith("/projects/")
+                || cleanPath.startsWith("/workspace/")
+                || sessionId == null || sessionId.isEmpty() || sessionId.equals("molly-guest-session");
+
+        if (isWorkspaceDirect) {
+            downloadWorkspaceFileDirect(baseUrl, cleanPath, targetFileName, callback);
+            return;
+        }
+
+        String relativePath = cleanPath.startsWith("/") ? cleanPath.substring(1) : cleanPath;
+        String encodedPath = relativePath;
+        try {
+            String[] segments = relativePath.split("/");
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < segments.length; i++) {
+                if (i > 0) sb.append("/");
+                sb.append(java.net.URLEncoder.encode(segments[i], "UTF-8").replace("+", "%20"));
+            }
+            encodedPath = sb.toString();
+        } catch (Exception ignored) {}
+
+        String endpoint = baseUrl + "/api/v1/agents/sessions/" + sessionId + "/artifacts/" + encodedPath + "?download=true";
+
+        Request request = new Request.Builder()
+                .url(endpoint)
+                .addHeader("Authorization", "Bearer " + token)
+                .addHeader("Bypass-Tunnel-Reminder", "true")
+                .get()
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                downloadWorkspaceFileDirect(baseUrl, cleanPath, targetFileName, callback);
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                if (response.isSuccessful() && response.body() != null) {
+                    saveResponseToFile(response, cleanPath, targetFileName, callback);
+                } else {
+                    downloadWorkspaceFileDirect(baseUrl, cleanPath, targetFileName, callback);
+                }
+            }
+        });
+    }
+
+    private void downloadWorkspaceFileDirect(String baseUrl, String workspacePath, String targetFileName, ApiCallback<File> callback) {
+        try {
+            if (baseUrl == null || (!baseUrl.startsWith("http://") && !baseUrl.startsWith("https://"))) {
+                mainHandler.post(() -> callback.onError("URL Server tidak valid"));
+                return;
+            }
+            String endpoint = baseUrl + "/api/system/mobile/workspace/download?path=" + java.net.URLEncoder.encode(workspacePath, "UTF-8");
+            Request request = new Request.Builder()
+                    .url(endpoint)
+                    .addHeader("Authorization", "Bearer " + token)
+                    .addHeader("Bypass-Tunnel-Reminder", "true")
+                    .get()
+                    .build();
+
+            client.newCall(request).enqueue(new Callback() {
+                @Override
+                public void onFailure(Call call, IOException e) {
+                    mainHandler.post(() -> callback.onError("Gagal mengunduh berkas: " + e.getMessage()));
+                }
+
+                @Override
+                public void onResponse(Call call, Response response) throws IOException {
+                    if (response.isSuccessful() && response.body() != null) {
+                        saveResponseToFile(response, workspacePath, targetFileName, callback);
+                    } else {
+                        mainHandler.post(() -> callback.onError("Unduhan gagal dengan status: " + response.code()));
+                    }
+                }
+            });
+        } catch (Exception e) {
+            mainHandler.post(() -> callback.onError("Error: " + e.getMessage()));
+        }
+    }
+
+    private void saveResponseToFile(Response response, String artifactPath, String targetFileName, ApiCallback<File> callback) {
+        try {
+            File downloadDir = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS);
+            if (!downloadDir.exists()) {
+                downloadDir.mkdirs();
+            }
+            String finalName = (targetFileName != null && !targetFileName.trim().isEmpty())
+                    ? targetFileName : new File(artifactPath).getName();
+            File destFile = new File(downloadDir, finalName);
+
+            try (java.io.InputStream is = response.body().byteStream();
+                 java.io.FileOutputStream fos = new java.io.FileOutputStream(destFile)) {
+                byte[] buffer = new byte[8192];
+                int read;
+                while ((read = is.read(buffer)) != -1) {
+                    fos.write(buffer, 0, read);
+                }
+                fos.flush();
+            }
+
+            mainHandler.post(() -> callback.onSuccess(destFile));
+        } catch (Exception e) {
+            mainHandler.post(() -> callback.onError("Gagal menyimpan berkas ke Download: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Menyimpan artefak thread ke direktori ruang kerja pribadi (personal space).
+     */
+    public void saveArtifactToWorkspace(String artifactPath, String destinationPath, ApiCallback<Boolean> callback) {
+        String baseUrl = getBaseUrl();
+        if (baseUrl.isEmpty() || artifactPath == null || artifactPath.isEmpty()) {
+            callback.onError("Parameter tidak valid atau server belum terhubung");
+            return;
+        }
+
+        if (sessionId == null || sessionId.isEmpty() || sessionId.equals("molly-guest-session")) {
+            callback.onError("Sesi belum aktif");
+            return;
+        }
+
+        String endpoint = baseUrl + "/api/v1/agents/sessions/" + sessionId + "/artifacts/save";
+        JsonObject bodyObj = new JsonObject();
+        bodyObj.addProperty("path", artifactPath);
+        bodyObj.addProperty("destination_path", (destinationPath != null && !destinationPath.isEmpty()) ? destinationPath : "/saved_artifacts");
+
+        RequestBody body = RequestBody.create(bodyObj.toString(), JSON);
+        Request request = new Request.Builder()
+                .url(endpoint)
+                .addHeader("Authorization", "Bearer " + token)
+                .addHeader("Bypass-Tunnel-Reminder", "true")
+                .post(body)
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                mainHandler.post(() -> callback.onError("Koneksi gagal: " + e.getMessage()));
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                if (response.isSuccessful()) {
+                    mainHandler.post(() -> callback.onSuccess(true));
+                } else {
+                    String err = response.body() != null ? response.body().string() : "";
+                    mainHandler.post(() -> callback.onError("Gagal menyimpan (" + response.code() + "): " + err));
                 }
             }
         });

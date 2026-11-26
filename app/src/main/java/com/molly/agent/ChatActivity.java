@@ -1,32 +1,45 @@
 package com.molly.agent;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.OpenableColumns;
+import android.util.TypedValue;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.EditText;
+import android.widget.HorizontalScrollView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AlertDialog;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
+
+import android.graphics.Color;
 
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.molly.agent.ui.MessageAdapter;
 import com.molly.agent.adapter.SessionDrawerAdapter;
 import com.molly.agent.api.MollyApiClient;
+import com.molly.agent.model.ArtifactItem;
+import com.molly.agent.model.AttachmentItem;
 import com.molly.agent.model.ChatMessage;
 import com.molly.agent.model.ChatDisplayItem;
 import com.molly.agent.model.ChatSessionItem;
 import com.molly.agent.model.SessionHistoryManager;
+import com.molly.agent.ui.ArtifactPreviewDialogHelper;
+import com.molly.agent.ui.MollyDialog;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -47,7 +60,9 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
     private TextView tvAgentName;
 
     private RecyclerView rvMessages;
+    private SwipeRefreshLayout swipeRefreshChat;
     private LinearLayout llThinking;
+    private android.animation.ObjectAnimator thinkingAnimator;
     private EditText etMessage;
     private FloatingActionButton btnSend;
 
@@ -61,10 +76,18 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
     private TextView tvToolbarContextPercent;
     private com.molly.agent.model.ContextUsageInfo currentContextUsageInfo = new com.molly.agent.model.ContextUsageInfo();
 
+    // Segmen / Linimasa Percakapan & Floating Scroll Bottom
+    private com.molly.agent.ui.ChatSegmentNavigatorHelper segmentNavigatorHelper;
+
     // Action pills seperti Gambar 2
     private TextView btnSelectAgent;
     private TextView btnSelectApproval;
     private TextView btnSelectModel;
+
+    // Lampiran Berkas (Attachments)
+    private final List<AttachmentItem> pendingAttachments = new ArrayList<>();
+    private HorizontalScrollView hsvAttachmentStaging;
+    private LinearLayout llAttachmentStagingContainer;
 
     // Komponen Drawer Sesi
     private MaterialButton btnDrawerNewSession;
@@ -91,6 +114,9 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
                 @Override
                 public void onSuccess(Boolean result) {
                     if (!isFinishing() && !isSessionExpiredHandled) {
+                        if (!isPolling) {
+                            fetchLatestMessages(false);
+                        }
                         heartbeatHandler.postDelayed(heartbeatRunnable, HEARTBEAT_INTERVAL_MS);
                     }
                 }
@@ -131,11 +157,38 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
                         stopPolling();
                         apiClient.switchSession(targetThreadId);
                         messageAdapter.setItems(new ArrayList<>());
+        if (segmentNavigatorHelper != null) segmentNavigatorHelper.updateSegments(null);
+                        if (segmentNavigatorHelper != null) segmentNavigatorHelper.updateSegments(null);
                         Toast.makeText(this, "Membuka sesi eksekusi tugas...", Toast.LENGTH_SHORT).show();
                         fetchLatestMessages(true);
                         refreshContextUsageSilently();
                     }
                 }
+            });
+
+    private final ActivityResultLauncher<String> pickMediaLauncher =
+            registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
+                if (uri != null) handleAttachmentPicked(uri, "image");
+            });
+
+    private final ActivityResultLauncher<String[]> pickDocumentLauncher =
+            registerForActivityResult(new ActivityResultContracts.OpenDocument(), uri -> {
+                if (uri != null) handleAttachmentPicked(uri, "document");
+            });
+
+    private final ActivityResultLauncher<String> pickAudioLauncher =
+            registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
+                if (uri != null) handleAttachmentPicked(uri, "audio");
+            });
+
+    private final ActivityResultLauncher<String> pickVideoLauncher =
+            registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
+                if (uri != null) handleAttachmentPicked(uri, "video");
+            });
+
+    private final ActivityResultLauncher<String> pickAnyFileLauncher =
+            registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
+                if (uri != null) handleAttachmentPicked(uri, "file");
             });
 
     @Override
@@ -168,6 +221,19 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
         tvAgentName = findViewById(R.id.tvAgentName);
 
         rvMessages = findViewById(R.id.rvMessages);
+        swipeRefreshChat = findViewById(R.id.swipeRefreshChat);
+        if (swipeRefreshChat != null) {
+            swipeRefreshChat.setColorSchemeColors(
+                    Color.parseColor("#38BDF8"),
+                    Color.parseColor("#EAB308"),
+                    Color.parseColor("#3B82F6")
+            );
+            swipeRefreshChat.setProgressBackgroundColorSchemeColor(Color.parseColor("#1E293B"));
+            swipeRefreshChat.setOnRefreshListener(() -> {
+                fetchLatestMessages(false);
+                refreshContextUsageSilently();
+            });
+        }
         llThinking = findViewById(R.id.llThinking);
         etMessage = findViewById(R.id.etMessage);
         btnSend = findViewById(R.id.btnSend);
@@ -198,11 +264,15 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
         rvDrawerSessions = findViewById(R.id.rvDrawerSessions);
         tvEmptySessions = findViewById(R.id.tvEmptySessions);
 
+        hsvAttachmentStaging = findViewById(R.id.hsvAttachmentStaging);
+        llAttachmentStagingContainer = findViewById(R.id.llAttachmentStagingContainer);
+
         rvDrawerSessions.setLayoutManager(new LinearLayoutManager(this));
 
         tvAgentName.setText(apiClient.getAgentName());
 
         messageAdapter = new MessageAdapter();
+        messageAdapter.setWidgetActionListener(this::sendWidgetCustomMessage);
         messageAdapter.setApprovalListener(new MessageAdapter.OnToolApprovalListener() {
             @Override
             public void onApprove(ChatDisplayItem item) {
@@ -214,10 +284,64 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
                 handleToolApprovalDecision(item, false);
             }
         });
+        messageAdapter.setOnArtifactActionListener(new MessageAdapter.OnArtifactActionListener() {
+            @Override
+            public void onPreview(ArtifactItem item) {
+                ArtifactPreviewDialogHelper.show(ChatActivity.this, apiClient, item, new ArtifactPreviewDialogHelper.OnArtifactActionListener() {
+                    @Override
+                    public void onDownload(ArtifactItem it) {
+                        downloadArtifact(it);
+                    }
+
+                    @Override
+                    public void onSave(ArtifactItem it) {
+                        saveArtifactToWorkspace(it);
+                    }
+                });
+            }
+
+            @Override
+            public void onDownload(ArtifactItem item) {
+                downloadArtifact(item);
+            }
+
+            @Override
+            public void onSave(ArtifactItem item) {
+                saveArtifactToWorkspace(item);
+            }
+        });
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
         layoutManager.setStackFromEnd(true);
         rvMessages.setLayoutManager(layoutManager);
         rvMessages.setAdapter(messageAdapter);
+
+        // Inisialisasi Linimasa Segmen Percakapan & Floating Preview Card (Screenshot Match)
+        View llSegmentNavigator = findViewById(R.id.llSegmentNavigator);
+        LinearLayout llSegmentNodes = findViewById(R.id.llSegmentNodes);
+        View btnSegmentPrev = findViewById(R.id.btnSegmentPrev);
+        View btnSegmentNext = findViewById(R.id.btnSegmentNext);
+        View btnScrollBottom = findViewById(R.id.btnScrollBottom);
+        View cardSegmentPreview = findViewById(R.id.cardSegmentPreview);
+        TextView tvPreviewTitle = findViewById(R.id.tvPreviewTitle);
+        TextView tvPreviewSnippet = findViewById(R.id.tvPreviewSnippet);
+        TextView tvPreviewCounter = findViewById(R.id.tvPreviewCounter);
+        TextView tvPreviewTime = findViewById(R.id.tvPreviewTime);
+
+        segmentNavigatorHelper = new com.molly.agent.ui.ChatSegmentNavigatorHelper(
+                this,
+                rvMessages,
+                layoutManager,
+                llSegmentNavigator,
+                llSegmentNodes,
+                btnSegmentPrev,
+                btnSegmentNext,
+                btnScrollBottom,
+                cardSegmentPreview,
+                tvPreviewTitle,
+                tvPreviewSnippet,
+                tvPreviewCounter,
+                tvPreviewTime
+        );
 
         // Click listeners
         btnMenu.setOnClickListener(v -> {
@@ -225,9 +349,20 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
             drawerLayout.openDrawer(GravityCompat.START);
         });
 
+        ImageView btnDocuments = findViewById(R.id.btnDocuments);
+        if (btnDocuments != null) {
+            btnDocuments.setOnClickListener(v -> startActivity(new Intent(this, PersonalSpaceActivity.class)));
+        }
+
         btnClearChat.setOnClickListener(v -> showClearChatConfirmationDialog());
         btnDisconnect.setOnClickListener(v -> showDisconnectConfirmationDialog());
-        btnSend.setOnClickListener(v -> handleSendMessage());
+        btnSend.setOnClickListener(v -> {
+            if (isAgentGenerating) {
+                handleCancelGeneration();
+            } else {
+                handleSendMessage();
+            }
+        });
 
         // Event klik untuk action pills (Gambar 2)
         btnSelectAgent.setOnClickListener(v -> showAgentPickerDialog());
@@ -324,11 +459,23 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
             });
         }
 
+        View btnDrawerChangelog = findViewById(R.id.btnDrawerChangelog);
+        TextView tvDrawerChangelogBadge = findViewById(R.id.tvDrawerChangelogBadge);
+        if (tvDrawerChangelogBadge != null) {
+            tvDrawerChangelogBadge.setText(com.molly.agent.update.AppUpdateManager.getCurrentVersionName(this) + " ❯");
+        }
+        if (btnDrawerChangelog != null) {
+            btnDrawerChangelog.setOnClickListener(v -> {
+                drawerLayout.closeDrawers();
+                com.molly.agent.ui.ChangelogDialogHelper.show(this, apiClient);
+            });
+        }
+
         View btnDrawerAbout = findViewById(R.id.btnDrawerAbout);
         if (btnDrawerAbout != null) {
             btnDrawerAbout.setOnClickListener(v -> {
                 drawerLayout.closeDrawers();
-                com.molly.agent.ui.AboutAppDialogHelper.show(this);
+                com.molly.agent.ui.AboutAppDialogHelper.show(this, apiClient);
             });
         }
 
@@ -423,11 +570,84 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
         stopPolling();
         apiClient.switchSession(session.getId());
         messageAdapter.setItems(new ArrayList<>());
+        if (segmentNavigatorHelper != null) segmentNavigatorHelper.updateSegments(null);
         drawerLayout.closeDrawer(GravityCompat.START);
 
         Toast.makeText(this, "Membuka: " + session.getTitle(), Toast.LENGTH_SHORT).show();
         fetchLatestMessages(true);
         refreshContextUsageSilently();
+    }
+
+    @Override
+    public void onSessionTogglePin(ChatSessionItem session) {
+        boolean newPinnedState = !session.isPinned();
+        session.setPinned(newPinnedState);
+        sessionManager.setPinned(session.getId(), newPinnedState);
+
+        apiClient.updateSession(session.getId(), null, newPinnedState, new MollyApiClient.ApiCallback<Boolean>() {
+            @Override
+            public void onSuccess(Boolean result) {}
+            @Override
+            public void onError(String error) {}
+        });
+
+        Toast.makeText(this, newPinnedState ? "Percakapan disematkan ke atas 📌" : "Sematan percakapan dilepas", Toast.LENGTH_SHORT).show();
+        loadDrawerSessions();
+    }
+
+    @Override
+    public void onSessionRename(ChatSessionItem session) {
+        LinearLayout container = new LinearLayout(this);
+        container.setOrientation(LinearLayout.VERTICAL);
+        int padH = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 4, getResources().getDisplayMetrics());
+        int padV = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 4, getResources().getDisplayMetrics());
+        container.setPadding(padH, padV, padH, padV);
+
+        TextView tvDesc = new TextView(this);
+        tvDesc.setText("Beri judul yang singkat dan mudah dikenali");
+        tvDesc.setTextColor(0xFF9CA3AF);
+        tvDesc.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        LinearLayout.LayoutParams descLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        descLp.bottomMargin = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 10, getResources().getDisplayMetrics());
+        tvDesc.setLayoutParams(descLp);
+        container.addView(tvDesc);
+
+        final EditText input = new EditText(this);
+        input.setText(session.getTitle());
+        input.setSelectAllOnFocus(true);
+        input.setTextColor(0xFFFFFFFF);
+        input.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        input.setBackgroundResource(R.drawable.bg_widget_radio_item);
+        int inputPad = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 10, getResources().getDisplayMetrics());
+        input.setPadding(inputPad, inputPad, inputPad, inputPad);
+        container.addView(input);
+
+        new com.molly.agent.ui.MollyDialog.Builder(this)
+                .setTitle("Ubah Nama Percakapan")
+                .setView(container)
+                .setPositiveButton("Simpan", (dialog, which) -> {
+                    String newTitle = input.getText() != null ? input.getText().toString().trim() : "";
+                    if (newTitle.isEmpty()) {
+                        Toast.makeText(this, "Judul percakapan tidak boleh kosong", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    session.setTitle(newTitle);
+                    sessionManager.renameSession(session.getId(), newTitle);
+
+                    apiClient.updateSession(session.getId(), newTitle, null, new MollyApiClient.ApiCallback<Boolean>() {
+                        @Override
+                        public void onSuccess(Boolean result) {}
+                        @Override
+                        public void onError(String error) {}
+                    });
+
+                    Toast.makeText(this, "Nama percakapan berhasil diperbarui", Toast.LENGTH_SHORT).show();
+                    loadDrawerSessions();
+                })
+                .setNegativeButton("Batal", null)
+                .show();
     }
 
     @Override
@@ -453,10 +673,10 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
 
     @Override
     public void onSessionDelete(ChatSessionItem session) {
-        new AlertDialog.Builder(this)
+        new com.molly.agent.ui.MollyDialog.Builder(this)
                 .setTitle("Hapus Sesi?")
                 .setMessage("Hapus percakapan '" + session.getTitle() + "'? Tindakan ini tidak dapat dibatalkan.")
-                .setPositiveButton("Hapus", (dialog, which) -> {
+                .setDestructiveButton("Hapus", (dialog, which) -> {
                     sessionManager.deleteSession(session.getId());
                     apiClient.archiveSession(session.getId(), new MollyApiClient.ApiCallback<Boolean>() {
                         @Override
@@ -480,16 +700,18 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
         stopPolling();
         apiClient.createNewSession();
         messageAdapter.setItems(new ArrayList<>());
+        if (segmentNavigatorHelper != null) segmentNavigatorHelper.updateSegments(null);
         drawerLayout.closeDrawer(GravityCompat.START);
         Toast.makeText(this, "Sesi chat baru siap. Ketik pesan untuk memulai.", Toast.LENGTH_SHORT).show();
     }
 
     private void showClearChatConfirmationDialog() {
-        new AlertDialog.Builder(this)
+        new com.molly.agent.ui.MollyDialog.Builder(this)
                 .setTitle("Bersihkan Chat?")
                 .setMessage("Apakah Anda yakin ingin mengosongkan tampilan pesan pada sesi saat ini?")
-                .setPositiveButton("Bersihkan", (dialog, which) -> {
+                .setDestructiveButton("Bersihkan", (dialog, which) -> {
                     messageAdapter.setItems(new ArrayList<>());
+        if (segmentNavigatorHelper != null) segmentNavigatorHelper.updateSegments(null);
                     Toast.makeText(this, "Tampilan pesan dibersihkan", Toast.LENGTH_SHORT).show();
                 })
                 .setNegativeButton("Batal", null)
@@ -542,7 +764,7 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
             }
         }
 
-        new AlertDialog.Builder(this)
+        new com.molly.agent.ui.MollyDialog.Builder(this)
                 .setTitle("Pilih Agent Molly")
                 .setSingleChoiceItems(names, selectedIndex, (dialog, which) -> {
                     MollyApiClient.AgentItem chosen = availableAgents.get(which);
@@ -560,28 +782,180 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
 
     private void showAttachmentOptionsDialog() {
         String[] options = {
-                "💡 @ Sebutkan Skill atau Agen",
+                "📷 Foto / Gambar",
+                "📄 Dokumen & PDF",
+                "🎵 Musik & Audio",
+                "🎬 Video",
+                "📎 Semua Jenis Berkas",
                 "📁 Sisipkan Berkas Ruang Kerja",
-                "📂 Buka Ruang Kerja Penuh (Personal Space)"
+                "📂 Buka Ruang Kerja Penuh (Personal Space)",
+                "💡 @ Sebutkan Skill atau Agen"
         };
-        new AlertDialog.Builder(this)
-                .setTitle("Tambah Konten / Referensi")
+        new com.molly.agent.ui.MollyDialog.Builder(this)
+                .setTitle("Tambah Konten / Lampiran")
                 .setItems(options, (dialog, which) -> {
                     if (which == 0) {
-                        com.molly.agent.ui.MentionPickerHelper.show(this, apiClient, "", item -> {
-                            insertMentionIntoInput(item.name);
-                        });
+                        pickMediaLauncher.launch("image/*");
                     } else if (which == 1) {
+                        pickDocumentLauncher.launch(new String[]{
+                                "application/pdf",
+                                "application/msword",
+                                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                                "application/vnd.ms-excel",
+                                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                "text/*"
+                        });
+                    } else if (which == 2) {
+                        pickAudioLauncher.launch("audio/*");
+                    } else if (which == 3) {
+                        pickVideoLauncher.launch("video/*");
+                    } else if (which == 4) {
+                        pickAnyFileLauncher.launch("*/*");
+                    } else if (which == 5) {
                         com.molly.agent.ui.WorkspaceFilesDialogHelper.show(this, apiClient, file -> {
                             String current = etMessage.getText() != null ? etMessage.getText().toString() : "";
                             etMessage.setText(current + " [Berkas: " + file.path + "] ");
                             etMessage.setSelection(etMessage.getText().length());
                         });
-                    } else if (which == 2) {
+                    } else if (which == 6) {
                         startActivity(new Intent(this, PersonalSpaceActivity.class));
+                    } else if (which == 7) {
+                        com.molly.agent.ui.MentionPickerHelper.show(this, apiClient, "", item -> {
+                            insertMentionIntoInput(item.name);
+                        });
                     }
                 })
                 .show();
+    }
+
+    private void handleAttachmentPicked(Uri uri, String category) {
+        String fileName = "attachment";
+        long fileSize = 0;
+        String mimeType = getContentResolver().getType(uri);
+
+        try (android.database.Cursor cursor = getContentResolver().query(uri, null, null, null, null)) {
+            if (cursor != null && cursor.moveToFirst()) {
+                int nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                if (nameIndex != -1) {
+                    fileName = cursor.getString(nameIndex);
+                }
+                int sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE);
+                if (sizeIndex != -1) {
+                    fileSize = cursor.getLong(sizeIndex);
+                }
+            }
+        } catch (Exception ignored) {}
+
+        if (mimeType == null || mimeType.isEmpty()) {
+            if ("image".equalsIgnoreCase(category)) mimeType = "image/jpeg";
+            else if ("audio".equalsIgnoreCase(category)) mimeType = "audio/mpeg";
+            else if ("video".equalsIgnoreCase(category)) mimeType = "video/mp4";
+            else if ("document".equalsIgnoreCase(category)) mimeType = "application/pdf";
+            else mimeType = "application/octet-stream";
+        }
+
+        byte[] fileBytes;
+        try (java.io.InputStream is = getContentResolver().openInputStream(uri);
+             java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream()) {
+            byte[] buffer = new byte[8192];
+            int read;
+            while ((read = is.read(buffer)) != -1) {
+                bos.write(buffer, 0, read);
+            }
+            fileBytes = bos.toByteArray();
+            if (fileSize <= 0) fileSize = fileBytes.length;
+        } catch (Exception e) {
+            Toast.makeText(this, "Gagal membaca berkas: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        final AttachmentItem item = new AttachmentItem(fileName, fileSize, mimeType, category, uri.toString());
+        item.setUploading(true);
+        pendingAttachments.add(item);
+        renderAttachmentStaging();
+
+        final String finalFileName = fileName;
+        final String finalMimeType = mimeType;
+
+        apiClient.uploadAttachment(fileBytes, finalFileName, finalMimeType, new MollyApiClient.ApiCallback<AttachmentItem>() {
+            @Override
+            public void onSuccess(AttachmentItem uploadedItem) {
+                item.setId(uploadedItem.getId());
+                item.setFileName(uploadedItem.getFileName());
+                item.setFileSize(uploadedItem.getFileSize());
+                item.setMimeType(uploadedItem.getMimeType());
+                item.setCategory(uploadedItem.getCategory());
+                item.setImageUrl(uploadedItem.getImageUrl());
+                item.setThumbnailUrl(uploadedItem.getThumbnailUrl());
+                item.setUploading(false);
+                item.setUploaded(true);
+                renderAttachmentStaging();
+                Toast.makeText(ChatActivity.this, "Lampiran siap: " + finalFileName, Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onError(String error) {
+                item.setUploading(false);
+                item.setErrorMessage(error);
+                renderAttachmentStaging();
+                Toast.makeText(ChatActivity.this, "Gagal mengunggah lampiran: " + error, Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    private void renderAttachmentStaging() {
+        if (llAttachmentStagingContainer == null || hsvAttachmentStaging == null) return;
+        llAttachmentStagingContainer.removeAllViews();
+
+        if (pendingAttachments.isEmpty()) {
+            hsvAttachmentStaging.setVisibility(View.GONE);
+            return;
+        }
+
+        hsvAttachmentStaging.setVisibility(View.VISIBLE);
+        for (int i = 0; i < pendingAttachments.size(); i++) {
+            final AttachmentItem item = pendingAttachments.get(i);
+            View chip = getLayoutInflater().inflate(R.layout.item_attachment_staging_chip, llAttachmentStagingContainer, false);
+            TextView tvEmoji = chip.findViewById(R.id.tvAttachmentEmoji);
+            ImageView ivThumb = chip.findViewById(R.id.ivAttachmentThumb);
+            TextView tvName = chip.findViewById(R.id.tvAttachmentName);
+            TextView tvStatus = chip.findViewById(R.id.tvAttachmentStatus);
+            View btnRemove = chip.findViewById(R.id.btnRemoveAttachment);
+
+            tvEmoji.setText(item.getCategoryEmoji());
+            tvName.setText(item.getFileName());
+
+            if (item.isUploading()) {
+                tvStatus.setText("Mengunggah...");
+                tvStatus.setTextColor(0xFF38BDF8);
+            } else if (item.isUploaded()) {
+                tvStatus.setText(item.getFormattedSize() + " • Siap ✓");
+                tvStatus.setTextColor(0xFF10B981);
+            } else if (item.getErrorMessage() != null) {
+                tvStatus.setText("Gagal upload");
+                tvStatus.setTextColor(0xFFEF4444);
+            }
+
+            if ("image".equalsIgnoreCase(item.getCategory()) && item.getImageUrl() != null && item.getImageUrl().startsWith("data:image")) {
+                try {
+                    String b64 = item.getImageUrl().substring(item.getImageUrl().indexOf(",") + 1);
+                    byte[] dec = android.util.Base64.decode(b64, android.util.Base64.DEFAULT);
+                    android.graphics.Bitmap bmp = android.graphics.BitmapFactory.decodeByteArray(dec, 0, dec.length);
+                    if (bmp != null) {
+                        ivThumb.setImageBitmap(bmp);
+                        ivThumb.setVisibility(View.VISIBLE);
+                        tvEmoji.setVisibility(View.GONE);
+                    }
+                } catch (Exception ignored) {}
+            }
+
+            btnRemove.setOnClickListener(v -> {
+                pendingAttachments.remove(item);
+                renderAttachmentStaging();
+            });
+
+            llAttachmentStagingContainer.addView(chip);
+        }
     }
 
     private void insertMentionIntoInput(String name) {
@@ -620,20 +994,22 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
         com.molly.agent.ui.ModelSelectorDialogHelper.show(
                 this,
                 apiClient,
-                apiClient.getSelectedModelName(),
+                apiClient.getSelectedModelId(),
                 (chosenId, chosenName) -> {
                     apiClient.setSelectedModel(chosenId, chosenName);
                     updateActionPillsUi();
+                    Toast.makeText(this, "Model AI dialihkan ke: " + chosenName, Toast.LENGTH_SHORT).show();
                 }
         );
     }
 
     private void showApprovalModeDialog() {
-        String[] modes = new String[]{"kepercayaan penuh (Otomatis)", "persetujuan manual"};
+        String[] modes = new String[]{"Kepercayaan Penuh (Otomatis)", "Persetujuan Manual"};
         int selectedIndex = ("default".equalsIgnoreCase(apiClient.getSelectedApprovalMode()) || "manual".equalsIgnoreCase(apiClient.getSelectedApprovalMode())) ? 1 : 0;
 
-        new AlertDialog.Builder(this)
+        new MollyDialog.Builder(this)
                 .setTitle("Mode Persetujuan Tool")
+                .setMessage("Tentukan apakah agen dapat menjalankan tool secara mandiri atau membutuhkan persetujuan Anda setiap kali.")
                 .setSingleChoiceItems(modes, selectedIndex, (dialog, which) -> {
                     if (which == 0) {
                         apiClient.setSelectedApprovalMode("always_trust");
@@ -664,7 +1040,7 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
                    .append("Server backend atau tunnel Cloudflare belum merespon.\n\n");
             }
 
-            AlertDialog.Builder builder = new AlertDialog.Builder(this)
+            com.molly.agent.ui.MollyDialog.Builder builder = new com.molly.agent.ui.MollyDialog.Builder(this)
                     .setTitle("⚠️ Koneksi Timeout")
                     .setMessage(msg.toString());
 
@@ -716,7 +1092,7 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
             container.addView(tvQuickTunnel);
         }
 
-        new AlertDialog.Builder(this)
+        new com.molly.agent.ui.MollyDialog.Builder(this)
                 .setTitle("🌐 Konfigurasi URL Server")
                 .setView(container)
                 .setPositiveButton("Simpan & Hubungkan", (d, w) -> {
@@ -756,18 +1132,60 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
         });
     }
 
+    private void downloadArtifact(ArtifactItem item) {
+        if (item == null || item.getPath() == null) return;
+        Toast.makeText(this, "Mengunduh " + item.getName() + "...", Toast.LENGTH_SHORT).show();
+        apiClient.downloadArtifactFile(item.getPath(), item.getName(), new MollyApiClient.ApiCallback<java.io.File>() {
+            @Override
+            public void onSuccess(java.io.File file) {
+                Toast.makeText(ChatActivity.this, "Berhasil diunduh ke folder Download: " + file.getName(), Toast.LENGTH_LONG).show();
+            }
+
+            @Override
+            public void onError(String error) {
+                Toast.makeText(ChatActivity.this, "Gagal mengunduh: " + error, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void saveArtifactToWorkspace(ArtifactItem item) {
+        if (item == null || item.getPath() == null) return;
+        com.molly.agent.ui.SaveArtifactDialogHelper.show(this, apiClient, item, savedPath -> {
+            // Berhasil disimpan ke direktori yang dipilih oleh pengguna
+        });
+    }
+
     private void handleSendMessage() {
         String text = etMessage.getText().toString().trim();
-        if (text.isEmpty()) return;
+        if (text.isEmpty() && pendingAttachments.isEmpty()) return;
+
+        for (AttachmentItem att : pendingAttachments) {
+            if (att.isUploading()) {
+                Toast.makeText(this, "Mohon tunggu hingga berkas selesai diunggah...", Toast.LENGTH_SHORT).show();
+                return;
+            }
+        }
 
         etMessage.setText("");
+
+        final List<AttachmentItem> attachmentsToSend = new ArrayList<>(pendingAttachments);
+        pendingAttachments.clear();
+        renderAttachmentStaging();
+
+        if (text.isEmpty()) {
+            text = "Berikut lampiran berkas:";
+        }
 
         // Tampilkan pesan user langsung di RecyclerView secara optimis
         SimpleDateFormat sdf = new SimpleDateFormat("HH:mm", Locale.getDefault());
         String time = sdf.format(new Date());
         ChatDisplayItem localMsg = new ChatDisplayItem(UUID.randomUUID().toString(), ChatDisplayItem.TYPE_USER, "user", text, time);
+        localMsg.setAttachments(attachmentsToSend);
         messageAdapter.addItem(localMsg);
         rvMessages.smoothScrollToPosition(messageAdapter.getItemCount() - 1);
+        if (segmentNavigatorHelper != null) {
+            segmentNavigatorHelper.updateSegments(messageAdapter.getItems());
+        }
 
         startThinking();
 
@@ -783,15 +1201,16 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
             );
         }
 
-        // Kirim prompt ke server Molly
-        apiClient.sendPrompt(text, new MollyApiClient.ApiCallback<String>() {
+        // Kirim prompt ke server Molly bersama lampiran berkas
+        final String promptToSend = text;
+        apiClient.sendPrompt(promptToSend, attachmentsToSend, new MollyApiClient.ApiCallback<String>() {
             @Override
             public void onSuccess(String result) {
                 // Catat/perbarui sesi dengan ID yang valid (termasuk jika dibuat secara auto-healing)
                 sessionManager.recordOrUpdateSession(
                         apiClient.getSessionId(),
                         titleSnippet,
-                        text,
+                        promptToSend,
                         apiClient.getAgentName(),
                         apiClient.getSelectedModelName()
                 );
@@ -803,6 +1222,56 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
             public void onError(String error) {
                 stopThinking();
                 Toast.makeText(ChatActivity.this, "Gagal mengirim: " + error, Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    /**
+     * Mengirim pesan aksi formulir / widget interaktif ke agen secara langsung
+     */
+    public void sendWidgetCustomMessage(String text) {
+        if (text == null || text.trim().isEmpty()) return;
+        final String actionText = text.trim();
+
+        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm", Locale.getDefault());
+        String time = sdf.format(new Date());
+        ChatDisplayItem localMsg = new ChatDisplayItem(UUID.randomUUID().toString(), ChatDisplayItem.TYPE_USER, "user", actionText, time);
+        messageAdapter.addItem(localMsg);
+        rvMessages.smoothScrollToPosition(messageAdapter.getItemCount() - 1);
+        if (segmentNavigatorHelper != null) {
+            segmentNavigatorHelper.updateSegments(messageAdapter.getItems());
+        }
+
+        startThinking();
+
+        String titleSnippet = actionText.length() > 30 ? actionText.substring(0, 30) + "..." : actionText;
+        if (!apiClient.getSessionId().isEmpty()) {
+            sessionManager.recordOrUpdateSession(
+                    apiClient.getSessionId(),
+                    titleSnippet,
+                    actionText,
+                    apiClient.getAgentName(),
+                    apiClient.getSelectedModelName()
+            );
+        }
+
+        apiClient.sendPrompt(actionText, new MollyApiClient.ApiCallback<String>() {
+            @Override
+            public void onSuccess(String result) {
+                sessionManager.recordOrUpdateSession(
+                        apiClient.getSessionId(),
+                        titleSnippet,
+                        actionText,
+                        apiClient.getAgentName(),
+                        apiClient.getSelectedModelName()
+                );
+                startPolling();
+            }
+
+            @Override
+            public void onError(String error) {
+                stopThinking();
+                Toast.makeText(ChatActivity.this, "Gagal mengirim aksi formulir: " + error, Toast.LENGTH_LONG).show();
             }
         });
     }
@@ -820,6 +1289,9 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
         apiClient.fetchSessionDisplayItems(new MollyApiClient.ApiCallback<List<ChatDisplayItem>>() {
             @Override
             public void onSuccess(List<ChatDisplayItem> list) {
+                if (swipeRefreshChat != null) {
+                    swipeRefreshChat.setRefreshing(false);
+                }
                 if (btnRereadConversation != null) {
                     btnRereadConversation.setText("Reread conversation");
                     btnRereadConversation.setEnabled(true);
@@ -832,6 +1304,9 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
                     ChatDisplayItem lastItem = list.get(list.size() - 1);
                     boolean isProcessing = false;
                     for (ChatDisplayItem it : list) {
+                        if (it.getTurnId() != null && !it.getTurnId().isEmpty()) {
+                            lastActiveTurnId = it.getTurnId();
+                        }
                         String st = it.getToolStatus();
                         if ("in_progress".equalsIgnoreCase(st) || "waiting".equalsIgnoreCase(st)) {
                             isProcessing = true;
@@ -843,15 +1318,24 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
                         stopThinking();
                     }
 
+                    int oldSize = messageAdapter.getItemCount();
                     messageAdapter.setItems(list);
+                    if (segmentNavigatorHelper != null) {
+                        segmentNavigatorHelper.updateSegments(list);
+                    }
                     if (scrollToBottom) {
                         rvMessages.scrollToPosition(list.size() - 1);
+                    } else if (oldSize > 0 && list.size() > oldSize) {
+                        rvMessages.smoothScrollToPosition(list.size() - 1);
                     }
                 }
             }
 
             @Override
             public void onError(String error) {
+                if (swipeRefreshChat != null) {
+                    swipeRefreshChat.setRefreshing(false);
+                }
                 if (btnRereadConversation != null) {
                     btnRereadConversation.setText("Reread conversation");
                     btnRereadConversation.setEnabled(true);
@@ -864,13 +1348,62 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
         });
     }
 
+    private boolean isAgentGenerating = false;
+    private String lastActiveTurnId = null;
+
     private void startThinking() {
+        isAgentGenerating = true;
         llThinking.setVisibility(View.VISIBLE);
+        llThinking.setAlpha(1f);
+
+        if (thinkingAnimator == null) {
+            thinkingAnimator = android.animation.ObjectAnimator.ofFloat(llThinking, "alpha", 1.0f, 0.45f);
+            thinkingAnimator.setDuration(900);
+            thinkingAnimator.setRepeatMode(android.animation.ValueAnimator.REVERSE);
+            thinkingAnimator.setRepeatCount(android.animation.ValueAnimator.INFINITE);
+        }
+        if (!thinkingAnimator.isRunning()) {
+            thinkingAnimator.start();
+        }
+
+        if (btnSend != null) {
+            btnSend.setImageResource(R.drawable.ic_stop);
+            btnSend.setBackgroundTintList(android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#EF4444")));
+        }
     }
 
     private void stopThinking() {
-        llThinking.setVisibility(View.GONE);
+        isAgentGenerating = false;
+        if (thinkingAnimator != null && thinkingAnimator.isRunning()) {
+            thinkingAnimator.cancel();
+        }
+        llThinking.animate().alpha(0f).setDuration(250).withEndAction(() -> {
+            llThinking.setVisibility(View.GONE);
+            llThinking.setAlpha(1f);
+        }).start();
+
+        if (btnSend != null) {
+            btnSend.setImageResource(R.drawable.ic_arrow_up);
+            btnSend.setBackgroundTintList(android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#F59E0B")));
+        }
         refreshContextUsageSilently();
+    }
+
+    private void handleCancelGeneration() {
+        Toast.makeText(this, "Menghentikan respon agen...", Toast.LENGTH_SHORT).show();
+        stopThinking();
+        stopPolling();
+        apiClient.cancelCurrentTurn(lastActiveTurnId, new MollyApiClient.ApiCallback<Boolean>() {
+            @Override
+            public void onSuccess(Boolean result) {
+                fetchLatestMessages(true);
+            }
+
+            @Override
+            public void onError(String error) {
+                fetchLatestMessages(true);
+            }
+        });
     }
 
     private void showContextUsageDialog() {
@@ -934,10 +1467,10 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
     }
 
     private void showDisconnectConfirmationDialog() {
-        new AlertDialog.Builder(this)
+        new MollyDialog.Builder(this)
                 .setTitle("Putuskan Molly Agent?")
                 .setMessage("Apakah Anda yakin ingin memutuskan sambungan dengan server Molly? Sesi ini akan ditutup dan Anda harus scan QR code kembali untuk menghubungkannya.")
-                .setPositiveButton("Ya, Putuskan", (dialog, which) -> {
+                .setDestructiveButton("Ya, Putuskan", (dialog, which) -> {
                     apiClient.notifyDisconnect(new MollyApiClient.ApiCallback<Boolean>() {
                         @Override
                         public void onSuccess(Boolean result) {}
@@ -959,7 +1492,7 @@ public class ChatActivity extends AppCompatActivity implements SessionDrawerAdap
         stopPolling();
         stopSessionHeartbeat();
 
-        new AlertDialog.Builder(this)
+        new MollyDialog.Builder(this)
                 .setTitle("Koneksi Diputuskan")
                 .setMessage("Sesi login Anda di Molly Web telah berakhir atau Anda telah logout. Demi keamanan, sesi chat di aplikasi Android otomatis diputuskan.")
                 .setCancelable(false)

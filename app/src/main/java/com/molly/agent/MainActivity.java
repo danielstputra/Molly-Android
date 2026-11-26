@@ -11,7 +11,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.button.MaterialButton;
@@ -20,6 +19,7 @@ import com.google.gson.JsonParser;
 import com.journeyapps.barcodescanner.ScanContract;
 import com.journeyapps.barcodescanner.ScanOptions;
 import com.molly.agent.api.MollyApiClient;
+import com.molly.agent.ui.MollyDialog;
 
 public class MainActivity extends AppCompatActivity {
     private MollyApiClient apiClient;
@@ -122,10 +122,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void showDisconnectConfirmationDialog() {
-        new AlertDialog.Builder(this)
+        new MollyDialog.Builder(this)
                 .setTitle("Putuskan Molly Agent?")
                 .setMessage("Apakah Anda yakin ingin memutuskan sambungan dengan server Molly? Sesi pairing akan dihapus dari HP.")
-                .setPositiveButton("Ya, Putuskan", (dialog, which) -> {
+                .setDestructiveButton("Ya, Putuskan", (dialog, which) -> {
                     apiClient.notifyDisconnect(new MollyApiClient.ApiCallback<Boolean>() {
                         @Override
                         public void onSuccess(Boolean result) {}
@@ -235,21 +235,26 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void showManualConnectDialog() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        MollyDialog.Builder builder = new MollyDialog.Builder(this);
         builder.setTitle(R.string.manual_connect);
+        builder.setMessage("Tempelkan konfigurasi pairing JSON dari Molly Web untuk menghubungkan perangkat:");
 
         final EditText input = new EditText(this);
         input.setHint("Tempel JSON pairing dari Molly Web di sini...");
         input.setLines(4);
+        input.setTextColor(0xFFFFFFFF);
+        input.setHintTextColor(0xFF94A3B8);
+        input.setBackgroundResource(R.drawable.bg_input_box);
+        input.setPadding(28, 20, 28, 20);
         builder.setView(input);
 
-        builder.setPositiveButton(R.string.connect, (dialog, which) -> {
+        builder.setPositiveButton(getString(R.string.connect), (dialog, which) -> {
             String text = input.getText().toString().trim();
             if (!text.isEmpty()) {
                 processQrPayload(text);
             }
         });
-        builder.setNegativeButton(R.string.cancel, (dialog, which) -> dialog.cancel());
+        builder.setNegativeButton(getString(R.string.cancel), null);
         builder.show();
     }
 

@@ -1,62 +1,146 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/bg_dark"
-    android:padding="24dp">
+    android:background="@color/bg_dark">
+
+    <!-- Animated Gradient Background Overlay -->
+    <View
+        android:id="@+id/vSplashGlow"
+        android:layout_width="320dp"
+        android:layout_height="320dp"
+        android:layout_gravity="center"
+        android:alpha="0"
+        android:background="@drawable/bg_splash_glow" />
+
+    <!-- Particle Views (dots) -->
+    <View android:id="@+id/vParticle1"
+        android:layout_width="6dp" android:layout_height="6dp"
+        android:layout_gravity="center"
+        android:layout_marginStart="80dp" android:layout_marginTop="120dp"
+        android:alpha="0" android:background="@drawable/bg_particle_dot" />
+    <View android:id="@+id/vParticle2"
+        android:layout_width="4dp" android:layout_height="4dp"
+        android:layout_gravity="center"
+        android:layout_marginEnd="90dp" android:layout_marginTop="80dp"
+        android:alpha="0" android:background="@drawable/bg_particle_dot" />
+    <View android:id="@+id/vParticle3"
+        android:layout_width="5dp" android:layout_height="5dp"
+        android:layout_gravity="center"
+        android:layout_marginStart="130dp" android:layout_marginBottom="100dp"
+        android:alpha="0" android:background="@drawable/bg_particle_dot" />
+    <View android:id="@+id/vParticle4"
+        android:layout_width="3dp" android:layout_height="3dp"
+        android:layout_gravity="center"
+        android:layout_marginEnd="60dp" android:layout_marginBottom="140dp"
+        android:alpha="0" android:background="@drawable/bg_particle_dot" />
+    <View android:id="@+id/vParticle5"
+        android:layout_width="5dp" android:layout_height="5dp"
+        android:layout_gravity="center"
+        android:layout_marginStart="40dp" android:layout_marginBottom="40dp"
+        android:alpha="0" android:background="@drawable/bg_particle_dot" />
+    <View android:id="@+id/vParticle6"
+        android:layout_width="4dp" android:layout_height="4dp"
+        android:layout_gravity="center"
+        android:layout_marginEnd="140dp" android:layout_marginTop="150dp"
+        android:alpha="0" android:background="@drawable/bg_particle_dot" />
 
     <!-- Center Content -->
     <LinearLayout
+        android:id="@+id/llSplashContent"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_centerInParent="true"
+        android:layout_gravity="center"
+        android:alpha="0"
         android:gravity="center"
         android:orientation="vertical">
 
-        <ImageView
-            android:id="@+id/ivSplashLogo"
-            android:layout_width="100dp"
-            android:layout_height="100dp"
-            android:contentDescription="Molly Logo"
-            android:src="@drawable/ic_molly_logo" />
+        <!-- Logo Container with ring -->
+        <FrameLayout
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+            android:layout_gravity="center">
 
+            <!-- Outer ring pulse -->
+            <View
+                android:id="@+id/vLogoRing"
+                android:layout_width="120dp"
+                android:layout_height="120dp"
+                android:layout_gravity="center"
+                android:alpha="0"
+                android:background="@drawable/bg_splash_ring" />
+
+            <!-- Logo Icon -->
+            <ImageView
+                android:id="@+id/ivSplashLogo"
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:layout_gravity="center"
+                android:contentDescription="Molly Logo"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_molly_logo" />
+        </FrameLayout>
+
+        <!-- App Name -->
         <TextView
             android:id="@+id/tvSplashTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:letterSpacing="0.03"
+            android:layout_marginTop="24dp"
+            android:alpha="0"
+            android:letterSpacing="0.08"
             android:text="Molly AI Agent"
             android:textColor="@color/primary_gold"
-            android:textSize="26sp"
+            android:textSize="28sp"
             android:textStyle="bold" />
 
+        <!-- Tagline -->
         <TextView
+            android:id="@+id/tvSplashTagline"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="Autonomous Enterprise AI Companion"
-            android:textColor="@color/text_muted"
+            android:alpha="0"
+            android:letterSpacing="0.04"
+            android:text="Enterprise AI Platform"
+            android:textColor="#8A8F98"
             android:textSize="13sp" />
 
-        <ProgressBar
-            android:id="@+id/pbSplashLoading"
-            style="?android:attr/progressBarStyleSmall"
-            android:layout_width="28dp"
-            android:layout_height="28dp"
-            android:layout_marginTop="32dp"
-            android:indeterminateTint="@color/primary_gold" />
+        <!-- Loading dots -->
+        <LinearLayout
+            android:id="@+id/llLoadingDots"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="40dp"
+            android:alpha="0"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <View android:id="@+id/vLoadDot1"
+                android:layout_width="8dp" android:layout_height="8dp"
+                android:layout_marginHorizontal="4dp"
+                android:background="@drawable/bg_splash_dot_active" />
+            <View android:id="@+id/vLoadDot2"
+                android:layout_width="8dp" android:layout_height="8dp"
+                android:layout_marginHorizontal="4dp"
+                android:background="@drawable/bg_splash_dot_inactive" />
+            <View android:id="@+id/vLoadDot3"
+                android:layout_width="8dp" android:layout_height="8dp"
+                android:layout_marginHorizontal="4dp"
+                android:background="@drawable/bg_splash_dot_inactive" />
+        </LinearLayout>
     </LinearLayout>
 
-    <!-- Bottom Footer Version -->
+    <!-- Version Footer -->
     <TextView
+        android:id="@+id/tvSplashVersion"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:layout_centerHorizontal="true"
-        android:layout_marginBottom="16dp"
-        android:text="Molly Agent Companion v1.0.0"
-        android:textColor="#5A5E64"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="24dp"
+        android:alpha="0"
+        android:text="v1.0.0"
+        android:textColor="#3A3E44"
         android:textSize="11sp" />
 
-</RelativeLayout>
+</FrameLayout>

@@ -1,6 +1,5 @@
 package com.molly.agent;
 
-import android.app.AlertDialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
@@ -21,6 +20,7 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.gson.JsonObject;
 import com.molly.agent.api.MollyApiClient;
 import com.molly.agent.model.ScheduledTaskItem;
+import com.molly.agent.ui.MollyDialog;
 import com.molly.agent.ui.ScheduledTaskEditDialogHelper;
 import com.molly.agent.ui.ScheduledTaskHistoryDialogHelper;
 import com.molly.agent.ui.ScheduledTasksAdapter;
@@ -274,10 +274,10 @@ public class ScheduledTasksActivity extends AppCompatActivity implements Schedul
 
     @Override
     public void onDelete(ScheduledTaskItem task) {
-        new AlertDialog.Builder(this)
+        new MollyDialog.Builder(this)
                 .setTitle("Hapus Tugas Terjadwal?")
                 .setMessage("Apakah Anda yakin ingin menghapus tugas \"" + task.name + "\"? Tindakan ini tidak dapat dibatalkan.")
-                .setPositiveButton("Hapus", (dialog, which) -> {
+                .setDestructiveButton("Hapus", (dialog, which) -> {
                     apiClient.deleteScheduledTask(task.id, new MollyApiClient.ApiCallback<Boolean>() {
                         @Override
                         public void onSuccess(Boolean result) {

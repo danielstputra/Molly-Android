@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_marginEnd="8dp"
+    android:background="@drawable/bg_widget_radio_item"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingStart="8dp"
+    android:paddingTop="6dp"
+    android:paddingEnd="8dp"
+    android:paddingBottom="6dp">
+
+    <!-- Category Icon / Thumbnail -->
+    <TextView
+        android:id="@+id/tvAttachmentEmoji"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="6dp"
+        android:text="📎"
+        android:textSize="14sp" />
+
+    <ImageView
+        android:id="@+id/ivAttachmentThumb"
+        android:layout_width="26dp"
+        android:layout_height="26dp"
+        android:layout_marginEnd="6dp"
+        android:scaleType="centerCrop"
+        android:visibility="gone" />
+
+    <!-- Info Column -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="6dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tvAttachmentName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:ellipsize="middle"
+            android:maxWidth="110dp"
+            android:singleLine="true"
+            android:text="document.pdf"
+            android:textColor="#FFFFFF"
+            android:textSize="11.5sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvAttachmentStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Mengunggah..."
+            android:textColor="#06B6D4"
+            android:textSize="9.5sp" />
+    </LinearLayout>
+
+    <!-- Close / Remove Button -->
+    <ImageView
+        android:id="@+id/btnRemoveAttachment"
+        android:layout_width="18dp"
+        android:layout_height="18dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:clickable="true"
+        android:contentDescription="Hapus Lampiran"
+        android:focusable="true"
+        android:padding="2dp"
+        android:src="@android:drawable/ic_menu_close_clear_cancel"
+        android:tint="#9CA3AF" />
+
+</LinearLayout>

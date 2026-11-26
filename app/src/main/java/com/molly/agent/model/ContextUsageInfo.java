@@ -41,6 +41,9 @@ public class ContextUsageInfo {
     public long recentInputTokens = 0;
     public long recentOutputTokens = 0;
 
+    public java.util.List<ArtifactItem> artifacts = new java.util.ArrayList<>();
+    public java.util.List<String> warnings = new java.util.ArrayList<>();
+
     /**
      * Memformat jumlah token persis dengan formatTokenCount di contextUsage.js Web Molly:
      * - Menggunakan basis 1024 (TOKEN_COUNT_K_UNIT = 1024, TOKEN_COUNT_M_UNIT = 1024 * 1000)
@@ -90,6 +93,43 @@ public class ContextUsageInfo {
             JsonObject as = root.getAsJsonObject("agent_state");
             if (as.has("token_usage") && as.get("token_usage").isJsonObject()) {
                 usage = as.getAsJsonObject("token_usage");
+            }
+            if (as.has("artifacts") && as.get("artifacts").isJsonArray()) {
+                com.google.gson.JsonArray arr = as.getAsJsonArray("artifacts");
+                java.util.Set<String> seen = new java.util.HashSet<>();
+                for (com.google.gson.JsonElement el : arr) {
+                    try {
+                        String p = el.getAsString().trim();
+                        if (!p.isEmpty()) {
+                            String name = p.contains("/") ? p.substring(p.lastIndexOf('/') + 1) : p;
+                            if (!seen.contains(name.toLowerCase())) {
+                                seen.add(name.toLowerCase());
+                                info.artifacts.add(new ArtifactItem(p, ""));
+                            }
+                        }
+                    } catch (Exception ignored) {}
+                }
+            }
+            if (as.has("warnings") && as.get("warnings").isJsonArray()) {
+                com.google.gson.JsonArray wArr = as.getAsJsonArray("warnings");
+                for (com.google.gson.JsonElement el : wArr) {
+                    try {
+                        if (el.isJsonObject()) {
+                            JsonObject wObj = el.getAsJsonObject();
+                            if (wObj.has("message") && !wObj.get("message").isJsonNull()) {
+                                String msg = wObj.get("message").getAsString().trim();
+                                if (!msg.isEmpty() && !info.warnings.contains(msg)) {
+                                    info.warnings.add(msg);
+                                }
+                            }
+                        } else if (el.isJsonPrimitive()) {
+                            String msg = el.getAsString().trim();
+                            if (!msg.isEmpty() && !info.warnings.contains(msg)) {
+                                info.warnings.add(msg);
+                            }
+                        }
+                    } catch (Exception ignored) {}
+                }
             }
         } else if (root.has("token_usage") && root.get("token_usage").isJsonObject()) {
             usage = root.getAsJsonObject("token_usage");

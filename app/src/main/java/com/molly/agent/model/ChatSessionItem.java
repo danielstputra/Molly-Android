@@ -5,15 +5,21 @@ public class ChatSessionItem {
     private String title;
     private long updatedAt;
     private boolean isArchived;
+    private boolean isPinned;
     private String lastMessage;
     private String agentName;
     private String modelName;
 
     public ChatSessionItem(String id, String title, long updatedAt, boolean isArchived, String lastMessage, String agentName, String modelName) {
+        this(id, title, updatedAt, isArchived, false, lastMessage, agentName, modelName);
+    }
+
+    public ChatSessionItem(String id, String title, long updatedAt, boolean isArchived, boolean isPinned, String lastMessage, String agentName, String modelName) {
         this.id = id;
         this.title = (title != null && !title.trim().isEmpty()) ? title : "Percakapan Baru";
         this.updatedAt = updatedAt > 0 ? updatedAt : System.currentTimeMillis();
         this.isArchived = isArchived;
+        this.isPinned = isPinned;
         this.lastMessage = lastMessage != null ? lastMessage : "";
         this.agentName = agentName != null ? agentName : "Molly Agent";
         this.modelName = modelName != null ? modelName : "";
@@ -49,6 +55,14 @@ public class ChatSessionItem {
 
     public void setArchived(boolean archived) {
         isArchived = archived;
+    }
+
+    public boolean isPinned() {
+        return isPinned;
+    }
+
+    public void setPinned(boolean pinned) {
+        isPinned = pinned;
     }
 
     public String getLastMessage() {

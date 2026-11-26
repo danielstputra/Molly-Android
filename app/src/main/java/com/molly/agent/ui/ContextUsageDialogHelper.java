@@ -1,6 +1,5 @@
 package com.molly.agent.ui;
 
-import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.res.ColorStateList;
@@ -57,6 +56,15 @@ public class ContextUsageDialogHelper {
         TextView tvRecentCallTokens = dialogView.findViewById(R.id.tvRecentCallTokens);
         ImageView btnCompressContext = dialogView.findViewById(R.id.btnCompressContext);
 
+        View llWarningsBox = dialogView.findViewById(R.id.llWarningsBox);
+        TextView tvWarningMessage = dialogView.findViewById(R.id.tvWarningMessage);
+
+        View llArtifactsSection = dialogView.findViewById(R.id.llArtifactsSection);
+        View btnToggleArtifacts = dialogView.findViewById(R.id.btnToggleArtifacts);
+        ImageView ivArtifactsChevron = dialogView.findViewById(R.id.ivArtifactsChevron);
+        TextView tvArtifactsCount = dialogView.findViewById(R.id.tvArtifactsCount);
+        LinearLayout llArtifactsContainer = dialogView.findViewById(R.id.llArtifactsContainer);
+
         ProgressBar pbStatusRefreshing = dialogView.findViewById(R.id.pbStatusRefreshing);
         ImageView btnRefreshStatus = dialogView.findViewById(R.id.btnRefreshStatus);
         View btnCloseContextStatus = dialogView.findViewById(R.id.btnCloseContextStatus);
@@ -79,9 +87,37 @@ public class ContextUsageDialogHelper {
             btnCloseContextBottom.setOnClickListener(v -> dialog.dismiss());
         }
 
+        final boolean[] isArtifactsExpanded = {true};
+        if (btnToggleArtifacts != null) {
+            btnToggleArtifacts.setOnClickListener(v -> {
+                isArtifactsExpanded[0] = !isArtifactsExpanded[0];
+                if (llArtifactsContainer != null) {
+                    llArtifactsContainer.setVisibility(isArtifactsExpanded[0] ? View.VISIBLE : View.GONE);
+                }
+                if (ivArtifactsChevron != null) {
+                    ivArtifactsChevron.setImageResource(isArtifactsExpanded[0] ? R.drawable.ic_chevron_down : R.drawable.ic_chevron_up);
+                }
+            });
+        }
+
         // Helper untuk mengisi data
         Runnable bindData = () -> {
             ContextUsageInfo info = initialInfo != null ? initialInfo : new ContextUsageInfo();
+
+            // 0. Bind Warnings (Matches Web Status Panel)
+            if (llWarningsBox != null) {
+                if (info.warnings != null && !info.warnings.isEmpty()) {
+                    llWarningsBox.setVisibility(View.VISIBLE);
+                    StringBuilder sb = new StringBuilder();
+                    for (int i = 0; i < info.warnings.size(); i++) {
+                        if (i > 0) sb.append("\n");
+                        sb.append(info.warnings.get(i));
+                    }
+                    if (tvWarningMessage != null) tvWarningMessage.setText(sb.toString());
+                } else {
+                    llWarningsBox.setVisibility(View.GONE);
+                }
+            }
 
             tvMainPercent.setText(info.percent + "%");
             tvContextUsageRatio.setText(ContextUsageInfo.formatToken(info.usedTokens) + " / " + ContextUsageInfo.formatToken(info.limitTokens));
@@ -129,6 +165,101 @@ public class ContextUsageDialogHelper {
             tvToolMsgTokens.setText(ContextUsageInfo.formatToken(info.toolMsgTokens));
 
             tvRecentCallTokens.setText("Input " + ContextUsageInfo.formatToken(info.recentInputTokens) + " · Output " + ContextUsageInfo.formatToken(info.recentOutputTokens));
+
+            // 4. Bind Artifacts (Matches Web Status Panel)
+            if (llArtifactsSection != null) {
+                if (info.artifacts != null && !info.artifacts.isEmpty()) {
+                    llArtifactsSection.setVisibility(View.VISIBLE);
+                    if (tvArtifactsCount != null) {
+                        tvArtifactsCount.setText(String.valueOf(info.artifacts.size()));
+                    }
+                    if (llArtifactsContainer != null) {
+                        llArtifactsContainer.removeAllViews();
+                        float density = context.getResources().getDisplayMetrics().density;
+                        int pad8 = (int) (8 * density);
+                        int pad12 = (int) (12 * density);
+                        int margin4 = (int) (4 * density);
+                        int iconSize = (int) (18 * density);
+
+                        for (com.molly.agent.model.ArtifactItem art : info.artifacts) {
+                            LinearLayout row = new LinearLayout(context);
+                            row.setOrientation(LinearLayout.HORIZONTAL);
+                            row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+                            row.setPadding(pad12, pad8, pad12, pad8);
+                            row.setBackgroundResource(R.drawable.bg_action_pill);
+                            row.setBackgroundTintList(ColorStateList.valueOf(0xFF1E242C));
+                            row.setClickable(true);
+                            row.setFocusable(true);
+
+                            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                            lp.topMargin = margin4;
+                            lp.bottomMargin = margin4;
+                            row.setLayoutParams(lp);
+
+                            ImageView icon = new ImageView(context);
+                            icon.setImageResource(R.drawable.ic_artifact_file);
+                            icon.setImageTintList(ColorStateList.valueOf(0xFF34D399));
+                            LinearLayout.LayoutParams iconLp = new LinearLayout.LayoutParams(iconSize, iconSize);
+                            icon.setLayoutParams(iconLp);
+                            row.addView(icon);
+
+                            TextView tvName = new TextView(context);
+                            tvName.setText(art.getName());
+                            tvName.setTextColor(Color.parseColor("#E2E8F0"));
+                            tvName.setTextSize(13);
+                            tvName.setTypeface(null, android.graphics.Typeface.BOLD);
+                            LinearLayout.LayoutParams nameLp = new LinearLayout.LayoutParams(
+                                    0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f);
+                            nameLp.leftMargin = pad8;
+                            nameLp.setMarginStart(pad8);
+                            tvName.setLayoutParams(nameLp);
+                            row.addView(tvName);
+
+                            row.setOnClickListener(v -> {
+                                if (context instanceof android.app.Activity) {
+                                    ArtifactPreviewDialogHelper.show((android.app.Activity) context, apiClient, art, new ArtifactPreviewDialogHelper.OnArtifactActionListener() {
+                                        @Override
+                                        public void onDownload(com.molly.agent.model.ArtifactItem it) {
+                                            android.widget.Toast.makeText(context, "Mengunduh " + it.getName() + "...", android.widget.Toast.LENGTH_SHORT).show();
+                                            apiClient.downloadArtifactFile(it.getPath(), it.getName(), new com.molly.agent.api.MollyApiClient.ApiCallback<java.io.File>() {
+                                                @Override
+                                                public void onSuccess(java.io.File file) {
+                                                    android.widget.Toast.makeText(context, "Berhasil diunduh ke folder Download: " + file.getName(), android.widget.Toast.LENGTH_LONG).show();
+                                                }
+
+                                                @Override
+                                                public void onError(String error) {
+                                                    android.widget.Toast.makeText(context, "Gagal mengunduh: " + error, android.widget.Toast.LENGTH_SHORT).show();
+                                                }
+                                            });
+                                        }
+
+                                        @Override
+                                        public void onSave(com.molly.agent.model.ArtifactItem it) {
+                                            apiClient.saveArtifactToWorkspace(it.getPath(), "/saved_artifacts", new com.molly.agent.api.MollyApiClient.ApiCallback<Boolean>() {
+                                                @Override
+                                                public void onSuccess(Boolean result) {
+                                                    android.widget.Toast.makeText(context, "Berhasil disimpan ke Ruang Kerja (/saved_artifacts)", android.widget.Toast.LENGTH_SHORT).show();
+                                                }
+
+                                                @Override
+                                                public void onError(String error) {
+                                                    android.widget.Toast.makeText(context, "Gagal menyimpan: " + error, android.widget.Toast.LENGTH_SHORT).show();
+                                                }
+                                            });
+                                        }
+                                    });
+                                }
+                            });
+
+                            llArtifactsContainer.addView(row);
+                        }
+                    }
+                } else {
+                    llArtifactsSection.setVisibility(View.GONE);
+                }
+            }
         };
 
         bindData.run();
@@ -161,7 +292,7 @@ public class ContextUsageDialogHelper {
 
         // Compress Context action
         btnCompressContext.setOnClickListener(v -> {
-            AlertDialog confirmDialog = new AlertDialog.Builder(context)
+            new MollyDialog.Builder(context)
                     .setTitle("Kompres Konteks?")
                     .setMessage("Apakah Anda ingin memicu kompresi riwayat konteks sesi ini untuk menghemat kuota token?")
                     .setPositiveButton("Kompres", (d, w) -> {
@@ -180,14 +311,7 @@ public class ContextUsageDialogHelper {
                         });
                     })
                     .setNegativeButton("Batal", null)
-                    .create();
-            confirmDialog.show();
-            if (confirmDialog.getButton(AlertDialog.BUTTON_POSITIVE) != null) {
-                confirmDialog.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(context.getColor(R.color.primary_gold));
-            }
-            if (confirmDialog.getButton(AlertDialog.BUTTON_NEGATIVE) != null) {
-                confirmDialog.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(0xFF9CA3AF);
-            }
+                    .show();
         });
 
         dialog.show();
@@ -238,5 +362,9 @@ public class ContextUsageDialogHelper {
         target.summaryTokens = src.summaryTokens;
         target.recentInputTokens = src.recentInputTokens;
         target.recentOutputTokens = src.recentOutputTokens;
+        target.artifacts.clear();
+        if (src.artifacts != null) target.artifacts.addAll(src.artifacts);
+        target.warnings.clear();
+        if (src.warnings != null) target.warnings.addAll(src.warnings);
     }
 }

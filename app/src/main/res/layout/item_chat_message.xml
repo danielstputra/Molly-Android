@@ -23,6 +23,15 @@
             android:paddingHorizontal="14dp"
             android:paddingVertical="10dp">
 
+            <!-- Container Lampiran Pesan Pengguna (Foto, Dokumen, Audio, Video) -->
+            <LinearLayout
+                android:id="@+id/llUserAttachments"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="6dp"
+                android:orientation="vertical"
+                android:visibility="gone" />
+
             <TextView
                 android:id="@+id/tvUserMessage"
                 android:layout_width="wrap_content"
@@ -30,6 +39,15 @@
                 android:text="User message"
                 android:textColor="@color/text_white"
                 android:textSize="14sp" />
+
+            <!-- Container untuk Widgets / Tables pada pesan user -->
+            <LinearLayout
+                android:id="@+id/llUserWidgets"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:orientation="vertical"
+                android:visibility="gone" />
 
             <TextView
                 android:id="@+id/tvUserTimestamp"
@@ -68,6 +86,7 @@
 
             <!-- Bubble Agent -->
             <LinearLayout
+                android:id="@+id/llAgentBubble"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:background="@drawable/bg_agent_bubble"
@@ -84,7 +103,25 @@
                     android:textColor="@color/text_white"
                     android:textIsSelectable="true"
                     android:textSize="14sp" />
+
+                <!-- Container untuk Rich Widgets, Code Blocks dengan tombol Menyalin, Prompt Cards, dan Forms -->
+                <LinearLayout
+                    android:id="@+id/llAgentWidgets"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="vertical"
+                    android:visibility="gone" />
             </LinearLayout>
+
+            <!-- Container Kartu Artefak (Present Artifacts: HTML, dokumen, code) -->
+            <LinearLayout
+                android:id="@+id/llAgentArtifacts"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:orientation="vertical"
+                android:visibility="gone" />
 
             <!-- Agent Action Bar (Like, Dislike, Copy, Timestamp) Sesuai Gambar -->
             <LinearLayout

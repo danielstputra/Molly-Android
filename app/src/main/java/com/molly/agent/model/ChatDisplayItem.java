@@ -105,6 +105,53 @@ public class ChatDisplayItem {
 
     // Sub-tools untuk Grouping Tool Call (Gambar 3)
     private final List<SubToolCall> subTools = new ArrayList<>();
+    private final List<AttachmentItem> attachments = new ArrayList<>();
+    private final List<ArtifactItem> artifacts = new ArrayList<>();
+
+    public List<ArtifactItem> getArtifacts() {
+        return artifacts;
+    }
+
+    public void setArtifacts(List<ArtifactItem> items) {
+        this.artifacts.clear();
+        if (items != null) {
+            for (ArtifactItem it : items) {
+                addArtifact(it);
+            }
+        }
+    }
+
+    public void addArtifact(ArtifactItem item) {
+        if (item != null) {
+            String newName = item.getName();
+            for (int i = 0; i < this.artifacts.size(); i++) {
+                ArtifactItem existing = this.artifacts.get(i);
+                if (existing.getName().equalsIgnoreCase(newName)) {
+                    // Jika item baru memiliki path lebih lengkap (misal path absolut), gantikan
+                    if (item.getPath() != null && (existing.getPath() == null || item.getPath().length() > existing.getPath().length())) {
+                        this.artifacts.set(i, item);
+                    }
+                    return;
+                }
+            }
+            this.artifacts.add(item);
+        }
+    }
+
+    public boolean hasArtifacts() {
+        return !this.artifacts.isEmpty();
+    }
+
+    public List<AttachmentItem> getAttachments() {
+        return attachments;
+    }
+
+    public void setAttachments(List<AttachmentItem> items) {
+        this.attachments.clear();
+        if (items != null) {
+            this.attachments.addAll(items);
+        }
+    }
 
     public ChatDisplayItem(String id, int itemType, String sender, String text, String timestamp) {
         this.id = id;

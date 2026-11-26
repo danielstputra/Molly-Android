@@ -1,11 +1,13 @@
 package com.molly.agent.update;
 
 import android.app.Activity;
-import android.app.AlertDialog;
+import android.app.Dialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
@@ -14,6 +16,7 @@ import android.os.Looper;
 import android.provider.Settings;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.Window;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -131,6 +134,7 @@ public class AppUpdateManager {
 
         TextView tvUpdateVersion = dialogView.findViewById(R.id.tvUpdateVersion);
         TextView tvUpdateChangelog = dialogView.findViewById(R.id.tvUpdateChangelog);
+        TextView tvViewFullChangelog = dialogView.findViewById(R.id.tvViewFullChangelog);
         View llDownloadProgress = dialogView.findViewById(R.id.llDownloadProgress);
         TextView tvDownloadStatus = dialogView.findViewById(R.id.tvDownloadStatus);
         TextView tvDownloadPercent = dialogView.findViewById(R.id.tvDownloadPercent);
@@ -143,10 +147,20 @@ public class AppUpdateManager {
         tvUpdateVersion.setText("Versi Terbaru: " + info.latestVersionName + " (Versi saat ini: " + getCurrentVersionName(activity) + ")");
         tvUpdateChangelog.setText(info.changelog);
 
-        AlertDialog dialog = new AlertDialog.Builder(activity)
-                .setView(dialogView)
-                .setCancelable(!info.forceUpdate)
-                .create();
+        if (tvViewFullChangelog != null) {
+            tvViewFullChangelog.setOnClickListener(v -> {
+                com.molly.agent.ui.ChangelogDialogHelper.show(activity, apiClient);
+            });
+        }
+
+        Dialog dialog = new Dialog(activity);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        dialog.setContentView(dialogView);
+        dialog.setCancelable(!info.forceUpdate);
+
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        }
 
         if (info.forceUpdate) {
             btnUpdateLater.setVisibility(View.GONE);
@@ -201,6 +215,11 @@ public class AppUpdateManager {
         File dir = activity.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
         if (dir == null) dir = activity.getCacheDir();
         File apkFile = new File(dir, "molly-agent-latest.apk");
+        if (apkFile.exists()) {
+            try {
+                apkFile.delete();
+            } catch (Exception ignored) {}
+        }
 
         Request request = new Request.Builder()
                 .url(downloadUrl)

@@ -1,14 +1,18 @@
 package com.molly.agent.adapter;
 
 import android.content.Context;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
+import android.os.Build;
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.PopupWindow;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
-import androidx.appcompat.widget.PopupMenu;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.molly.agent.R;
@@ -23,6 +27,8 @@ public class SessionDrawerAdapter extends RecyclerView.Adapter<SessionDrawerAdap
 
     public interface OnSessionClickListener {
         void onSessionSelect(ChatSessionItem session);
+        void onSessionTogglePin(ChatSessionItem session);
+        void onSessionRename(ChatSessionItem session);
         void onSessionArchive(ChatSessionItem session);
         void onSessionDelete(ChatSessionItem session);
     }
@@ -54,6 +60,10 @@ public class SessionDrawerAdapter extends RecyclerView.Adapter<SessionDrawerAdap
         holder.tvTitle.setText(item.getTitle());
         holder.tvDate.setText(dateFormat.format(new Date(item.getUpdatedAt())));
 
+        if (holder.ivPinned != null) {
+            holder.ivPinned.setVisibility(item.isPinned() ? View.VISIBLE : View.GONE);
+        }
+
         boolean isCurrent = item.getId().equals(currentSessionId);
         if (isCurrent) {
             holder.itemView.setBackgroundResource(R.drawable.bg_action_pill);
@@ -67,27 +77,72 @@ public class SessionDrawerAdapter extends RecyclerView.Adapter<SessionDrawerAdap
             if (listener != null) listener.onSessionSelect(item);
         });
 
-        holder.btnOptions.setOnClickListener(v -> {
-            PopupMenu popup = new PopupMenu(context, holder.btnOptions);
-            if (item.isArchived()) {
-                popup.getMenu().add(0, 1, 0, "Batalkan Arsip");
-            } else {
-                popup.getMenu().add(0, 1, 0, "Arsipkan Sesi");
-            }
-            popup.getMenu().add(0, 2, 1, "Hapus Sesi");
-
-            popup.setOnMenuItemClickListener(menuItem -> {
-                if (menuItem.getItemId() == 1) {
-                    if (listener != null) listener.onSessionArchive(item);
-                    return true;
-                } else if (menuItem.getItemId() == 2) {
-                    if (listener != null) listener.onSessionDelete(item);
-                    return true;
-                }
-                return false;
-            });
-            popup.show();
+        // Long press opens context popup menu
+        holder.itemView.setOnLongClickListener(v -> {
+            showSessionOptionsMenu(holder.btnSessionOptions, item);
+            return true;
         });
+
+        // Click options button opens context popup menu
+        holder.btnSessionOptions.setOnClickListener(v -> {
+            showSessionOptionsMenu(holder.btnSessionOptions, item);
+        });
+    }
+
+    private void showSessionOptionsMenu(View anchorView, ChatSessionItem item) {
+        View popupView = LayoutInflater.from(context).inflate(R.layout.popup_session_options_menu, null);
+        PopupWindow popup = new PopupWindow(
+                popupView,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                true
+        );
+
+        popup.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        popup.setOutsideTouchable(true);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            popup.setElevation(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 12, context.getResources().getDisplayMetrics()));
+        }
+
+        // 1. Pin to top / Unpin from top
+        TextView tvPin = popupView.findViewById(R.id.tvPopupPinText);
+        if (item.isPinned()) {
+            tvPin.setText("Unpin from top");
+        } else {
+            tvPin.setText("pin to top");
+        }
+        popupView.findViewById(R.id.llPopupPin).setOnClickListener(v -> {
+            popup.dismiss();
+            if (listener != null) listener.onSessionTogglePin(item);
+        });
+
+        // 2. Rename
+        popupView.findViewById(R.id.llPopupRename).setOnClickListener(v -> {
+            popup.dismiss();
+            if (listener != null) listener.onSessionRename(item);
+        });
+
+        // 3. Archive
+        TextView tvArchive = popupView.findViewById(R.id.tvPopupArchiveText);
+        if (item.isArchived()) {
+            tvArchive.setText("Batalkan Arsip");
+        } else {
+            tvArchive.setText("Archive");
+        }
+        popupView.findViewById(R.id.llPopupArchive).setOnClickListener(v -> {
+            popup.dismiss();
+            if (listener != null) listener.onSessionArchive(item);
+        });
+
+        // 4. Delete
+        popupView.findViewById(R.id.llPopupDelete).setOnClickListener(v -> {
+            popup.dismiss();
+            if (listener != null) listener.onSessionDelete(item);
+        });
+
+        // Tampilkan dropdown sejajar tombol opsi ke arah kiri
+        int xOffset = -(int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 130, context.getResources().getDisplayMetrics());
+        popup.showAsDropDown(anchorView, xOffset, 0);
     }
 
     @Override
@@ -98,13 +153,15 @@ public class SessionDrawerAdapter extends RecyclerView.Adapter<SessionDrawerAdap
     static class ViewHolder extends RecyclerView.ViewHolder {
         TextView tvTitle;
         TextView tvDate;
-        ImageView btnOptions;
+        ImageView ivPinned;
+        ImageView btnSessionOptions;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
             tvTitle = itemView.findViewById(R.id.tvSessionTitle);
             tvDate = itemView.findViewById(R.id.tvSessionDate);
-            btnOptions = itemView.findViewById(R.id.btnSessionOptions);
+            ivPinned = itemView.findViewById(R.id.ivPinned);
+            btnSessionOptions = itemView.findViewById(R.id.btnSessionOptions);
         }
     }
 }

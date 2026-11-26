@@ -11,7 +11,6 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -21,6 +20,7 @@ import com.google.gson.JsonObject;
 import com.molly.agent.api.MollyApiClient;
 import com.molly.agent.model.ModelProviderItem;
 import com.molly.agent.ui.ModelProvidersAdapter;
+import com.molly.agent.ui.MollyDialog;
 import com.molly.agent.ui.ProviderEditDialogHelper;
 import com.molly.agent.ui.ProviderModelsDialogHelper;
 
@@ -277,10 +277,10 @@ public class ModelProvidersActivity extends AppCompatActivity implements ModelPr
 
     @Override
     public void onDeleteProvider(ModelProviderItem item) {
-        new AlertDialog.Builder(this)
+        new MollyDialog.Builder(this)
                 .setTitle("Hapus Penyedia Model?")
                 .setMessage("Apakah Anda yakin ingin menghapus konfigurasi penyedia \"" + item.displayName + "\" (" + item.providerId + ")? Semua model dari penyedia ini tidak akan tersedia.")
-                .setPositiveButton("Ya, Hapus", (dialog, which) -> {
+                .setDestructiveButton("Ya, Hapus", (dialog, which) -> {
                     apiClient.deleteModelProvider(item.providerId, new MollyApiClient.ApiCallback<Boolean>() {
                         @Override
                         public void onSuccess(Boolean result) {

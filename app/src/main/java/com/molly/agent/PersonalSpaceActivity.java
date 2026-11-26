@@ -1,6 +1,5 @@
 package com.molly.agent;
 
-import android.app.AlertDialog;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -19,9 +18,13 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.molly.agent.api.MollyApiClient;
+import com.molly.agent.model.ArtifactItem;
 import com.molly.agent.model.WorkspaceFileItem;
+import com.molly.agent.ui.MollyDialog;
+import com.molly.agent.ui.ArtifactPreviewDialogHelper;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -55,6 +58,7 @@ public class PersonalSpaceActivity extends AppCompatActivity {
 
     private CheckBox cbSelectAll;
     private ProgressBar pbLoading;
+    private SwipeRefreshLayout swipeRefreshPersonalSpace;
     private RecyclerView rvFileList;
     private LinearLayout llEmptyState;
 
@@ -100,6 +104,16 @@ public class PersonalSpaceActivity extends AppCompatActivity {
 
         cbSelectAll = findViewById(R.id.cbSelectAll);
         pbLoading = findViewById(R.id.pbLoading);
+        swipeRefreshPersonalSpace = findViewById(R.id.swipeRefreshPersonalSpace);
+        if (swipeRefreshPersonalSpace != null) {
+            swipeRefreshPersonalSpace.setColorSchemeColors(
+                    android.graphics.Color.parseColor("#38BDF8"),
+                    android.graphics.Color.parseColor("#EAB308"),
+                    android.graphics.Color.parseColor("#3B82F6")
+            );
+            swipeRefreshPersonalSpace.setProgressBackgroundColorSchemeColor(android.graphics.Color.parseColor("#1E293B"));
+            swipeRefreshPersonalSpace.setOnRefreshListener(() -> loadFiles(currentDirectory, etSearchQuery.getText().toString().trim()));
+        }
         rvFileList = findViewById(R.id.rvFileList);
         llEmptyState = findViewById(R.id.llEmptyState);
 
@@ -195,7 +209,29 @@ public class PersonalSpaceActivity extends AppCompatActivity {
                     currentDirectory = item.path;
                     loadFiles(currentDirectory, "");
                 } else {
-                    showFileDetailDialog(item);
+                    ArtifactItem art = new ArtifactItem(item.path, apiClient.getSessionId());
+                    ArtifactPreviewDialogHelper.show(PersonalSpaceActivity.this, apiClient, art, new ArtifactPreviewDialogHelper.OnArtifactActionListener() {
+                        @Override
+                        public void onDownload(ArtifactItem it) {
+                            Toast.makeText(PersonalSpaceActivity.this, "Mengunduh " + it.getName() + "...", Toast.LENGTH_SHORT).show();
+                            apiClient.downloadArtifactFile(it.getPath(), it.getName(), new MollyApiClient.ApiCallback<java.io.File>() {
+                                @Override
+                                public void onSuccess(java.io.File file) {
+                                    Toast.makeText(PersonalSpaceActivity.this, "Berhasil diunduh ke folder Download: " + file.getName(), Toast.LENGTH_LONG).show();
+                                }
+
+                                @Override
+                                public void onError(String error) {
+                                    Toast.makeText(PersonalSpaceActivity.this, "Gagal mengunduh: " + error, Toast.LENGTH_SHORT).show();
+                                }
+                            });
+                        }
+
+                        @Override
+                        public void onSave(ArtifactItem it) {
+                            Toast.makeText(PersonalSpaceActivity.this, "Berkas sudah berada di ruang kerja pribadi", Toast.LENGTH_SHORT).show();
+                        }
+                    });
                 }
             }
 
@@ -237,6 +273,7 @@ public class PersonalSpaceActivity extends AppCompatActivity {
         apiClient.fetchWorkspaceFiles(path, query, new MollyApiClient.ApiCallback<List<WorkspaceFileItem>>() {
             @Override
             public void onSuccess(List<WorkspaceFileItem> result) {
+                if (swipeRefreshPersonalSpace != null) swipeRefreshPersonalSpace.setRefreshing(false);
                 pbLoading.setVisibility(View.GONE);
                 currentFileList.clear();
                 if (result != null) {
@@ -257,6 +294,7 @@ public class PersonalSpaceActivity extends AppCompatActivity {
 
             @Override
             public void onError(String error) {
+                if (swipeRefreshPersonalSpace != null) swipeRefreshPersonalSpace.setRefreshing(false);
                 pbLoading.setVisibility(View.GONE);
                 Toast.makeText(PersonalSpaceActivity.this, "Gagal memuat berkas: " + error, Toast.LENGTH_SHORT).show();
             }
@@ -287,9 +325,11 @@ public class PersonalSpaceActivity extends AppCompatActivity {
         EditText etName = new EditText(this);
         etName.setHint("Nama folder baru (misal: my_project)");
         etName.setTextColor(0xFFFFFFFF);
-        etName.setHintTextColor(0xFF9CA3AF);
+        etName.setHintTextColor(0xFF94A3B8);
+        etName.setBackgroundResource(R.drawable.bg_input_box);
+        etName.setPadding(28, 20, 28, 20);
 
-        new AlertDialog.Builder(this)
+        new MollyDialog.Builder(this)
                 .setTitle("📁 Buat Folder Baru")
                 .setMessage("Folder akan dibuat di direktori: " + currentDirectory)
                 .setView(etName)
@@ -315,10 +355,10 @@ public class PersonalSpaceActivity extends AppCompatActivity {
     }
 
     private void showBatchDeleteConfirmationDialog() {
-        new AlertDialog.Builder(this)
+        new MollyDialog.Builder(this)
                 .setTitle("🗑️ Hapus " + selectedPaths.size() + " Berkas?")
                 .setMessage("Apakah Anda yakin ingin menghapus berkas/folder yang dipilih dari Ruang Kerja secara permanen?")
-                .setPositiveButton("Hapus Sekarang", (dialog, which) -> {
+                .setDestructiveButton("Hapus Sekarang", (dialog, which) -> {
                     apiClient.deleteWorkspaceFiles(new ArrayList<>(selectedPaths), new MollyApiClient.ApiCallback<Boolean>() {
                         @Override
                         public void onSuccess(Boolean res) {
@@ -337,17 +377,41 @@ public class PersonalSpaceActivity extends AppCompatActivity {
     }
 
     private void showFileOptionsBottomSheet(WorkspaceFileItem item) {
-        String[] options = {"Salin Path (" + item.path + ")", "Hapus Berkas"};
-        new AlertDialog.Builder(this)
+        String[] options = {"🌐 Buka Pratinjau Live", "Salin Path (" + item.path + ")", "Hapus Berkas"};
+        new MollyDialog.Builder(this)
                 .setTitle(item.getIcon() + " " + item.name)
                 .setItems(options, (dialog, which) -> {
                     if (which == 0) {
+                        ArtifactItem art = new ArtifactItem(item.path, apiClient.getSessionId());
+                        ArtifactPreviewDialogHelper.show(PersonalSpaceActivity.this, apiClient, art, new ArtifactPreviewDialogHelper.OnArtifactActionListener() {
+                            @Override
+                            public void onDownload(ArtifactItem it) {
+                                Toast.makeText(PersonalSpaceActivity.this, "Mengunduh " + it.getName() + "...", Toast.LENGTH_SHORT).show();
+                                apiClient.downloadArtifactFile(it.getPath(), it.getName(), new MollyApiClient.ApiCallback<java.io.File>() {
+                                    @Override
+                                    public void onSuccess(java.io.File file) {
+                                        Toast.makeText(PersonalSpaceActivity.this, "Berhasil diunduh ke folder Download: " + file.getName(), Toast.LENGTH_LONG).show();
+                                    }
+
+                                    @Override
+                                    public void onError(String error) {
+                                        Toast.makeText(PersonalSpaceActivity.this, "Gagal mengunduh: " + error, Toast.LENGTH_SHORT).show();
+                                    }
+                                });
+                            }
+
+                            @Override
+                            public void onSave(ArtifactItem it) {
+                                Toast.makeText(PersonalSpaceActivity.this, "Berkas sudah berada di ruang kerja pribadi", Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                    } else if (which == 1) {
                         android.content.ClipboardManager cb = (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
                         if (cb != null) {
                             cb.setPrimaryClip(android.content.ClipData.newPlainText("File Path", item.path));
                             Toast.makeText(this, "Path disalin ke papan klip", Toast.LENGTH_SHORT).show();
                         }
-                    } else if (which == 1) {
+                    } else if (which == 2) {
                         List<String> list = new ArrayList<>();
                         list.add(item.path);
                         apiClient.deleteWorkspaceFiles(list, new MollyApiClient.ApiCallback<Boolean>() {
@@ -368,7 +432,7 @@ public class PersonalSpaceActivity extends AppCompatActivity {
     }
 
     private void showFileDetailDialog(WorkspaceFileItem item) {
-        new AlertDialog.Builder(this)
+        new MollyDialog.Builder(this)
                 .setTitle(item.getIcon() + " " + item.name)
                 .setMessage("Jalur: " + item.path + "\nUkuran: " + item.getFormattedSize() + "\nWaktu Modifikasi: " + item.lastModified)
                 .setPositiveButton("Salin Path", (dialog, which) -> {

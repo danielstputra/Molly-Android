@@ -16,22 +16,25 @@ import android.text.style.TypefaceSpan;
 import android.text.style.URLSpan;
 import android.text.style.UnderlineSpan;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
  * Renderer Markdown native untuk Molly Agent Android.
- * Menangani secara elegan dan presisi:
+ * Menangani secara elegan dan presisi 100% selaras dengan Web Molly:
  * 1. Headings (#, ##, ###, ####, dll)
  * 2. Numbered lists (1. 2. 3. paragraph indentation)
  * 3. Bullet lists (*, -, +)
  * 4. Fenced code blocks (```language ... ```)
- * 5. Inline code (`code`)
- * 6. Bold (**) & Italic (*) & Bold-Italic (***)
+ * 5. Inline code (`code` & <code>)
+ * 6. Bold (**, __, <b>, <strong>) & Italic (*, _, <i>, <em>) & Bold-Italic (***)
  * 7. Blockquotes (>)
- * 8. Strikethrough (~~)
+ * 8. Strikethrough (~~ & <del>)
  * 9. Links ([title](url))
  * 10. Horizontal rule (---, ***)
+ * 11. Structured Tables (| col | col |)
  */
 public class MarkdownHelper {
 
@@ -46,14 +49,19 @@ public class MarkdownHelper {
     public static final int COLOR_BORDER = 0xFF34383D;
     public static final int COLOR_TEXT_WHITE = 0xFFF5F7F7;
 
-    // Pattern untuk inline markdown
+    // Pattern untuk inline markdown dan HTML formatting
     // Group 1-2: `code`
     // Group 3-5: [link](url)
     // Group 6-7: ***bold-italic***
     // Group 8-9: **bold**
     // Group 10-11: __bold__
     // Group 12-13: *italic*
-    // Group 14-15: ~~strikethrough~~
+    // Group 14-15: _italic_
+    // Group 16-17: ~~strikethrough~~
+    // Group 18-19: <b> or <strong>
+    // Group 20-21: <i> or <em>
+    // Group 22-23: <code>
+    // Group 24-25: <del>
     private static final Pattern INLINE_PATTERN = Pattern.compile(
             "(`([^`\\n]+)`)" +
             "|(\\[([^\\]\\n]+)\\]\\(([^)\\s]+)\\))" +
@@ -61,15 +69,52 @@ public class MarkdownHelper {
             "|(\\*{2}([^*\\n]+)\\*{2})" +
             "|(__([^_\\n]+)__)" +
             "|(\\*(?!\\s)([^*\\n]+?)(?<!\\s)\\*)" +
-            "|(~~([^~\\n]+)~~)"
+            "|(_(?!\\s)([^_\\n]+?)(?<!\\s)_)" +
+            "|(~~([^~\\n]+)~~)" +
+            "|(<(?:b|strong)>([\\s\\S]*?)<\\/(?:b|strong)>)" +
+            "|(<(?:i|em)>([\\s\\S]*?)<\\/(?:i|em)>)" +
+            "|(<code>([\\s\\S]*?)<\\/code>)" +
+            "|(<del>([\\s\\S]*?)<\\/del>)",
+            Pattern.CASE_INSENSITIVE
     );
 
-    private static final Pattern HEADING_PATTERN = Pattern.compile("^(#{1,6})\\s+(.*)$");
-    private static final Pattern NUMBERED_LIST_PATTERN = Pattern.compile("^(\\d+)\\.\\s+(.*)$");
-    private static final Pattern BULLET_LIST_PATTERN = Pattern.compile("^[*\\-+]\\s+(.*)$");
+    private static final Pattern HEADING_PATTERN = Pattern.compile("^(\\s*#{1,6})\\s+(.*)$");
+    private static final Pattern NUMBERED_LIST_PATTERN = Pattern.compile("^(\\s*\\d+)\\.\\s+(.*)$");
+    private static final Pattern BULLET_LIST_PATTERN = Pattern.compile("^(\\s*)[*\\-+]\\s+(.*)$");
     private static final Pattern QUOTE_PATTERN = Pattern.compile("^>\\s*(.*)$");
     private static final Pattern HR_PATTERN = Pattern.compile("^(\\*{3,}|-{3,}|_{3,})$");
     private static final Pattern CODE_BLOCK_START = Pattern.compile("^```([a-zA-Z0-9_-]*)$");
+
+    public static boolean isTableDelimiterLine(String line) {
+        if (line == null) return false;
+        String trimmed = line.trim();
+        if (trimmed.isEmpty() || !trimmed.contains("|")) return false;
+        String[] parts = trimmed.split("\\|", -1);
+        int start = trimmed.startsWith("|") ? 1 : 0;
+        int end = trimmed.endsWith("|") ? parts.length - 1 : parts.length;
+        if (end <= start) return false;
+        for (int i = start; i < end; i++) {
+            String p = parts[i].trim();
+            if (!p.matches("^:?-{1,}:?$")) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static List<String> parseCells(String line) {
+        List<String> cells = new ArrayList<>();
+        if (line == null) return cells;
+        String trimmed = line.trim();
+        if (trimmed.isEmpty()) return cells;
+        String[] parts = trimmed.split("\\|", -1);
+        int start = trimmed.startsWith("|") ? 1 : 0;
+        int end = trimmed.endsWith("|") ? parts.length - 1 : parts.length;
+        for (int i = start; i < end; i++) {
+            cells.add(parts[i].trim());
+        }
+        return cells;
+    }
 
     public static CharSequence render(Context context, String rawText) {
         if (rawText == null || rawText.isEmpty()) {
@@ -124,7 +169,95 @@ public class MarkdownHelper {
                 continue;
             }
 
-            // 2. Cek Horizontal Rule (---, ***, ___)
+            // 2. Cek Structured Markdown Table (| header | header |)
+            if (i + 1 < lines.length && line.contains("|") && isTableDelimiterLine(lines[i + 1])) {
+                String headerLine = line;
+                String delimLine = lines[i + 1];
+                List<String> rowLines = new ArrayList<>();
+                i += 2;
+                while (i < lines.length && lines[i].contains("|") && !lines[i].trim().isEmpty()) {
+                    rowLines.add(lines[i]);
+                    i++;
+                }
+                i--; // Mundur satu langkah karena loop luar akan melakukan i++
+
+                // Format tabel monospaced yang presisi dan rapi
+                List<String> headers = parseCells(headerLine);
+                List<List<String>> allRows = new ArrayList<>();
+                for (String rLine : rowLines) {
+                    allRows.add(parseCells(rLine));
+                }
+
+                int cols = headers.size();
+                int[] colWidths = new int[cols];
+                for (int c = 0; c < cols; c++) {
+                    colWidths[c] = headers.get(c).replaceAll("[*_`~]", "").length();
+                }
+                for (List<String> rowCells : allRows) {
+                    for (int c = 0; c < cols && c < rowCells.size(); c++) {
+                        int len = rowCells.get(c).replaceAll("[*_`~]", "").length();
+                        if (len > colWidths[c]) {
+                            colWidths[c] = len;
+                        }
+                    }
+                }
+
+                int tableStart = builder.length();
+                // Render header
+                builder.append("┌");
+                for (int c = 0; c < cols; c++) {
+                    for (int w = 0; w < colWidths[c] + 2; w++) builder.append("─");
+                    if (c < cols - 1) builder.append("┬");
+                }
+                builder.append("┐\n");
+
+                builder.append("│");
+                for (int c = 0; c < cols; c++) {
+                    String hText = headers.get(c);
+                    String cleanH = hText.replaceAll("[*_`~]", "");
+                    builder.append(" ").append(cleanH);
+                    for (int w = 0; w < colWidths[c] - cleanH.length() + 1; w++) builder.append(" ");
+                    builder.append("│");
+                }
+                builder.append("\n");
+
+                builder.append("├");
+                for (int c = 0; c < cols; c++) {
+                    for (int w = 0; w < colWidths[c] + 2; w++) builder.append("─");
+                    if (c < cols - 1) builder.append("┼");
+                }
+                builder.append("┤\n");
+
+                // Render rows
+                for (List<String> rowCells : allRows) {
+                    builder.append("│");
+                    for (int c = 0; c < cols; c++) {
+                        String cellText = (c < rowCells.size()) ? rowCells.get(c) : "";
+                        String cleanCell = cellText.replaceAll("[*_`~]", "");
+                        builder.append(" ").append(cleanCell);
+                        for (int w = 0; w < colWidths[c] - cleanCell.length() + 1; w++) builder.append(" ");
+                        builder.append("│");
+                    }
+                    builder.append("\n");
+                }
+
+                builder.append("└");
+                for (int c = 0; c < cols; c++) {
+                    for (int w = 0; w < colWidths[c] + 2; w++) builder.append("─");
+                    if (c < cols - 1) builder.append("┴");
+                }
+                builder.append("┘");
+                if (i < lines.length - 1) builder.append("\n");
+                int tableEnd = builder.length();
+
+                builder.setSpan(new TypefaceSpan("monospace"), tableStart, tableEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                builder.setSpan(new BackgroundColorSpan(COLOR_CODE_BG), tableStart, tableEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                builder.setSpan(new ForegroundColorSpan(COLOR_CODE_TEXT), tableStart, tableEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                builder.setSpan(new RelativeSizeSpan(0.85f), tableStart, tableEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                continue;
+            }
+
+            // 3. Cek Horizontal Rule (---, ***, ___)
             if (HR_PATTERN.matcher(trimmed).matches()) {
                 int start = builder.length();
                 builder.append("────────────────────────");
@@ -135,7 +268,7 @@ public class MarkdownHelper {
                 continue;
             }
 
-            // 3. Cek Headings (#, ##, ###, ####, dll)
+            // 4. Cek Headings (#, ##, ###, ####, dll)
             Matcher headingMatcher = HEADING_PATTERN.matcher(line);
             if (headingMatcher.matches()) {
                 String hashes = headingMatcher.group(1);
@@ -163,7 +296,7 @@ public class MarkdownHelper {
                 continue;
             }
 
-            // 4. Cek Blockquote (> quote)
+            // 5. Cek Blockquote (> quote)
             Matcher quoteMatcher = QUOTE_PATTERN.matcher(line);
             if (quoteMatcher.matches()) {
                 String content = quoteMatcher.group(1);
@@ -183,10 +316,10 @@ public class MarkdownHelper {
                 continue;
             }
 
-            // 5. Cek Numbered List (1. , 2. , dst)
+            // 6. Cek Numbered List (1. , 2. , dst)
             Matcher numListMatcher = NUMBERED_LIST_PATTERN.matcher(line);
             if (numListMatcher.matches()) {
-                String num = numListMatcher.group(1);
+                String num = numListMatcher.group(1) != null ? numListMatcher.group(1).trim() : "1";
                 String content = numListMatcher.group(2);
 
                 int start = builder.length();
@@ -206,29 +339,33 @@ public class MarkdownHelper {
                 continue;
             }
 
-            // 6. Cek Bullet List (*, -, +)
+            // 7. Cek Bullet List (*, -, +) dengan dukungan nested indent
             Matcher bulletMatcher = BULLET_LIST_PATTERN.matcher(line);
             if (bulletMatcher.matches()) {
-                String content = bulletMatcher.group(1);
+                String indent = bulletMatcher.group(1);
+                String content = bulletMatcher.group(2);
+                boolean isNested = indent != null && indent.length() >= 2;
 
                 int start = builder.length();
-                String prefix = "•  ";
+                String prefix = isNested ? "   ◦  " : "•  ";
                 builder.append(prefix);
                 int prefixEnd = builder.length();
 
                 builder.setSpan(new StyleSpan(Typeface.BOLD), start, prefixEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                builder.setSpan(new ForegroundColorSpan(COLOR_GOLD), start, prefixEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                builder.setSpan(new ForegroundColorSpan(isNested ? COLOR_CYAN : COLOR_GOLD), start, prefixEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
 
                 CharSequence parsedContent = parseInline(content);
                 builder.append(parsedContent);
                 if (i < lines.length - 1) builder.append("\n");
                 int end = builder.length();
 
-                builder.setSpan(new LeadingMarginSpan.Standard(18, 40), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                int firstMargin = isNested ? 32 : 16;
+                int restMargin = isNested ? 58 : 38;
+                builder.setSpan(new LeadingMarginSpan.Standard(firstMargin, restMargin), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                 continue;
             }
 
-            // 7. Paragraf / Teks Biasa
+            // 8. Paragraf / Teks Biasa
             int start = builder.length();
             CharSequence parsedContent = parseInline(line);
             builder.append(parsedContent);
@@ -242,12 +379,12 @@ public class MarkdownHelper {
 
     /**
      * Mem-parse format teks inline:
-     * - `inline code`
+     * - `inline code` & <code>
      * - [link](url)
      * - ***bold italic***
-     * - **bold** / __bold__
-     * - *italic*
-     * - ~~strikethrough~~
+     * - **bold** / __bold__ / <b> / <strong>
+     * - *italic* / _italic_ / <i> / <em>
+     * - ~~strikethrough~~ / <del>
      */
     public static SpannableStringBuilder parseInline(String text) {
         if (text == null || text.isEmpty()) {
@@ -297,6 +434,7 @@ public class MarkdownHelper {
                 sb.append(content);
                 int end = sb.length();
                 sb.setSpan(new StyleSpan(Typeface.BOLD_ITALIC), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                sb.setSpan(new ForegroundColorSpan(0xFFFFFFFF), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
             // Group 8 & 9: **bold**
             else if (matcher.group(8) != null) {
@@ -305,6 +443,7 @@ public class MarkdownHelper {
                 sb.append(content);
                 int end = sb.length();
                 sb.setSpan(new StyleSpan(Typeface.BOLD), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                sb.setSpan(new ForegroundColorSpan(0xFFFFFFFF), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
             // Group 10 & 11: __bold__
             else if (matcher.group(10) != null) {
@@ -313,6 +452,7 @@ public class MarkdownHelper {
                 sb.append(content);
                 int end = sb.length();
                 sb.setSpan(new StyleSpan(Typeface.BOLD), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                sb.setSpan(new ForegroundColorSpan(0xFFFFFFFF), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
             // Group 12 & 13: *italic*
             else if (matcher.group(12) != null) {
@@ -322,9 +462,53 @@ public class MarkdownHelper {
                 int end = sb.length();
                 sb.setSpan(new StyleSpan(Typeface.ITALIC), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
-            // Group 14 & 15: ~~strikethrough~~
+            // Group 14 & 15: _italic_
             else if (matcher.group(14) != null) {
                 String content = matcher.group(15);
+                int start = sb.length();
+                sb.append(content);
+                int end = sb.length();
+                sb.setSpan(new StyleSpan(Typeface.ITALIC), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+            // Group 16 & 17: ~~strikethrough~~
+            else if (matcher.group(16) != null) {
+                String content = matcher.group(17);
+                int start = sb.length();
+                sb.append(content);
+                int end = sb.length();
+                sb.setSpan(new StrikethroughSpan(), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+            // Group 18 & 19: <b> or <strong>
+            else if (matcher.group(18) != null) {
+                String content = matcher.group(19);
+                int start = sb.length();
+                sb.append(content);
+                int end = sb.length();
+                sb.setSpan(new StyleSpan(Typeface.BOLD), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                sb.setSpan(new ForegroundColorSpan(0xFFFFFFFF), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+            // Group 20 & 21: <i> or <em>
+            else if (matcher.group(20) != null) {
+                String content = matcher.group(21);
+                int start = sb.length();
+                sb.append(content);
+                int end = sb.length();
+                sb.setSpan(new StyleSpan(Typeface.ITALIC), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+            // Group 22 & 23: <code>
+            else if (matcher.group(22) != null) {
+                String codeContent = matcher.group(23);
+                int start = sb.length();
+                sb.append(" ").append(codeContent).append(" ");
+                int end = sb.length();
+                sb.setSpan(new TypefaceSpan("monospace"), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                sb.setSpan(new BackgroundColorSpan(COLOR_INLINE_CODE_BG), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                sb.setSpan(new ForegroundColorSpan(COLOR_INLINE_CODE_TEXT), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                sb.setSpan(new RelativeSizeSpan(0.92f), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+            // Group 24 & 25: <del>
+            else if (matcher.group(24) != null) {
+                String content = matcher.group(25);
                 int start = sb.length();
                 sb.append(content);
                 int end = sb.length();

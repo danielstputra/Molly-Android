@@ -68,6 +68,36 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
+            <!-- Warnings Box (Matches Web Status Panel) -->
+            <LinearLayout
+                android:id="@+id/llWarningsBox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="10dp"
+                android:background="@drawable/bg_code_block"
+                android:backgroundTint="#2D2310"
+                android:orientation="vertical"
+                android:padding="12dp"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Warnings"
+                    android:textColor="#FBBF24"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvWarningMessage"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="Beberapa kemampuan konfigurasi tidak tersedia dan telah difilter berdasarkan izin pemanggil saat ini."
+                    android:textColor="#FDE68A"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
             <!-- Card 1: Context Usage Overview -->
             <LinearLayout
                 android:layout_width="match_parent"
@@ -577,6 +607,69 @@
                     android:textColor="#FFFFFF"
                     android:textSize="12sp"
                     android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Card 4: Artifacts List (Matches Web Status Panel) -->
+            <LinearLayout
+                android:id="@+id/llArtifactsSection"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/bg_code_block"
+                android:backgroundTint="#1A1E24"
+                android:orientation="vertical"
+                android:padding="12dp"
+                android:visibility="gone">
+
+                <!-- Artifacts Header Toggle -->
+                <LinearLayout
+                    android:id="@+id/btnToggleArtifacts"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="?selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Artifacts"
+                        android:textColor="#E2E8F0"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+
+                    <ImageView
+                        android:id="@+id/ivArtifactsChevron"
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:layout_marginStart="4dp"
+                        android:src="@drawable/ic_chevron_down"
+                        android:tint="#9CA3AF" />
+
+                    <View
+                        android:layout_width="0dp"
+                        android:layout_height="1dp"
+                        android:layout_weight="1" />
+
+                    <TextView
+                        android:id="@+id/tvArtifactsCount"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0"
+                        android:textColor="#9CA3AF"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <!-- Artifacts List Container -->
+                <LinearLayout
+                    android:id="@+id/llArtifactsContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="vertical" />
             </LinearLayout>
 
         </LinearLayout>

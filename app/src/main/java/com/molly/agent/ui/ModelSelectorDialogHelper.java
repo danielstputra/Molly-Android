@@ -185,9 +185,17 @@ public class ModelSelectorDialogHelper {
             holder.tvName.setText(item.name);
             holder.tvCheckmark.setVisibility(item.isSelected ? View.VISIBLE : View.GONE);
 
-            holder.itemView.setOnClickListener(v -> {
+            View.OnClickListener clickListener = v -> {
                 if (listener != null) listener.onItemClick(item);
-            });
+            };
+
+            holder.itemView.setOnClickListener(clickListener);
+            if (holder.llRow != null) {
+                holder.llRow.setOnClickListener(clickListener);
+            }
+            if (holder.tvName != null) {
+                holder.tvName.setOnClickListener(clickListener);
+            }
         }
 
         @Override
@@ -199,12 +207,14 @@ public class ModelSelectorDialogHelper {
             TextView tvHeader;
             TextView tvName;
             TextView tvCheckmark;
+            View llRow;
 
             public ViewHolder(@NonNull View itemView) {
                 super(itemView);
                 tvHeader = itemView.findViewById(R.id.tvModelProviderHeader);
                 tvName = itemView.findViewById(R.id.tvModelRowName);
                 tvCheckmark = itemView.findViewById(R.id.tvModelRowCheckmark);
+                llRow = itemView.findViewById(R.id.llModelSelectorRow);
             }
         }
     }

@@ -1,5 +1,7 @@
 buildscript {
     repositories {
+        google()
+        mavenCentral()
         maven { 
             url 'http://127.0.0.1:8899/google'
             allowInsecureProtocol = true
@@ -16,6 +18,8 @@ buildscript {
 
 allprojects {
     repositories {
+        google()
+        mavenCentral()
         maven { 
             url 'http://127.0.0.1:8899/google'
             allowInsecureProtocol = true

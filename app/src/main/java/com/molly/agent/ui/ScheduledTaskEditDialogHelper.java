@@ -1,12 +1,13 @@
 package com.molly.agent.ui;
 
-import android.app.AlertDialog;
+import android.app.Dialog;
 import android.app.TimePickerDialog;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.Window;
 import android.widget.EditText;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
@@ -199,7 +200,7 @@ public class ScheduledTaskEditDialogHelper {
         String[] days = new String[]{"Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"};
         int[] cronDays = new int[]{1, 2, 3, 4, 5, 6, 7};
         tvWeeklyDaySelect.setOnClickListener(v -> {
-            new AlertDialog.Builder(context)
+            new MollyDialog.Builder(context)
                     .setTitle("Pilih Hari Eksekusi")
                     .setItems(days, (d, which) -> {
                         weekdayHolder[0] = cronDays[which];
@@ -219,7 +220,7 @@ public class ScheduledTaskEditDialogHelper {
             for (int i = 0; i < availableAgents.size(); i++) {
                 names[i] = availableAgents.get(i).name;
             }
-            new AlertDialog.Builder(context)
+            new MollyDialog.Builder(context)
                     .setTitle("Pilih Agen Pelaksana")
                     .setItems(names, (d, which) -> {
                         selectedAgentSlug[0] = availableAgents.get(which).id;
@@ -231,10 +232,10 @@ public class ScheduledTaskEditDialogHelper {
 
         updateCronPreview.run();
 
-        AlertDialog dialog = new AlertDialog.Builder(context)
-                .setView(view)
-                .setCancelable(true)
-                .create();
+        Dialog dialog = new Dialog(context);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        dialog.setContentView(view);
+        dialog.setCancelable(true);
 
         if (dialog.getWindow() != null) {
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));

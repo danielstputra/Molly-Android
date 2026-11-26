@@ -1,15 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/bg_dark"
-    android:orientation="vertical">
+    android:background="@color/bg_dark">
+
+    <!-- Ambient background glow behind top area -->
+    <View
+        android:id="@+id/vIntroAmbientGlow"
+        android:layout_width="300dp"
+        android:layout_height="300dp"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="60dp"
+        android:alpha="0.4"
+        android:background="@drawable/bg_intro_aura" />
 
     <!-- Top Bar with Skip Button -->
     <RelativeLayout
+        android:id="@+id/rlIntroTopBar"
         android:layout_width="match_parent"
         android:layout_height="56dp"
+        android:layout_alignParentTop="true"
         android:paddingHorizontal="20dp">
 
         <TextView
@@ -19,6 +30,7 @@
             android:layout_alignParentEnd="true"
             android:layout_centerVertical="true"
             android:background="?selectableItemBackgroundBorderless"
+            android:letterSpacing="0.04"
             android:padding="8dp"
             android:text="Lewati"
             android:textColor="@color/text_muted"
@@ -30,50 +42,50 @@
     <androidx.viewpager2.widget.ViewPager2
         android:id="@+id/viewPagerIntro"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1" />
+        android:layout_height="match_parent"
+        android:layout_above="@+id/llIntroBottomControls"
+        android:layout_below="@+id/rlIntroTopBar" />
 
     <!-- Bottom Controls -->
     <LinearLayout
+        android:id="@+id/llIntroBottomControls"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
         android:gravity="center"
         android:orientation="vertical"
         android:paddingHorizontal="24dp"
         android:paddingBottom="36dp">
 
-        <!-- Dots Indicator -->
+        <!-- Smooth Morphing Dots Indicator -->
         <LinearLayout
             android:id="@+id/llDotsIndicator"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="16dp"
             android:layout_marginBottom="28dp"
             android:gravity="center"
             android:orientation="horizontal">
 
-            <ImageView
+            <View
                 android:id="@+id/dot1"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_width="26dp"
+                android:layout_height="8dp"
                 android:layout_marginHorizontal="4dp"
-                android:contentDescription="Dot 1"
-                android:src="@drawable/dot_active" />
+                android:background="@drawable/bg_intro_dot_active" />
 
-            <ImageView
+            <View
                 android:id="@+id/dot2"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_width="8dp"
+                android:layout_height="8dp"
                 android:layout_marginHorizontal="4dp"
-                android:contentDescription="Dot 2"
-                android:src="@drawable/dot_inactive" />
+                android:background="@drawable/bg_intro_dot_inactive" />
 
-            <ImageView
+            <View
                 android:id="@+id/dot3"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_width="8dp"
+                android:layout_height="8dp"
                 android:layout_marginHorizontal="4dp"
-                android:contentDescription="Dot 3"
-                android:src="@drawable/dot_inactive" />
+                android:background="@drawable/bg_intro_dot_inactive" />
         </LinearLayout>
 
         <!-- Next / Get Started Button -->
@@ -81,13 +93,15 @@
             android:id="@+id/btnNextOrStart"
             android:layout_width="match_parent"
             android:layout_height="52dp"
+            android:letterSpacing="0.04"
             android:text="Lanjut"
             android:textColor="#121417"
             android:textSize="15sp"
             android:textStyle="bold"
             app:backgroundTint="@color/primary_gold"
-            app:cornerRadius="26dp" />
+            app:cornerRadius="26dp"
+            app:elevation="4dp" />
 
     </LinearLayout>
 
-</LinearLayout>
+</RelativeLayout>

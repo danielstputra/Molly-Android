@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0F172A"
+    android:orientation="vertical">
+
+    <!-- Top Action Bar / Header -->
+    <LinearLayout
+        android:id="@+id/llPreviewHeader"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:background="#1E293B"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="12dp">
+
+        <!-- File Icon & Title -->
+        <ImageView
+            android:id="@+id/ivPreviewFileIcon"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:contentDescription="Berkas"
+            android:src="@drawable/ic_artifact_file" />
+
+        <TextView
+            android:id="@+id/tvPreviewPathTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:ellipsize="middle"
+            android:singleLine="true"
+            android:text="/saved_artifacts/login.html"
+            android:textColor="#F8FAFC"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <!-- Mode Switcher: Render (Globe) vs Source Code (Code) -->
+        <LinearLayout
+            android:id="@+id/llModeSwitcher"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:layout_marginEnd="6dp"
+            android:background="@drawable/bg_chat_action_btn"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="2dp">
+
+            <ImageView
+                android:id="@+id/btnModeRender"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:background="@drawable/bg_action_pill"
+                android:backgroundTint="#3B82F6"
+                android:clickable="true"
+                android:contentDescription="Pratinjau Web"
+                android:focusable="true"
+                android:padding="6dp"
+                android:src="@drawable/ic_globe" />
+
+            <ImageView
+                android:id="@+id/btnModeSource"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:clickable="true"
+                android:contentDescription="Kode Sumber"
+                android:focusable="true"
+                android:padding="6dp"
+                android:src="@drawable/ic_code" />
+        </LinearLayout>
+
+        <!-- Toggle Desktop Mode Button -->
+        <ImageView
+            android:id="@+id/btnToggleDesktopMode"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginEnd="6dp"
+            android:background="@drawable/bg_chat_action_btn"
+            android:clickable="true"
+            android:contentDescription="Mode Tampilan Desktop/Ponsel"
+            android:focusable="true"
+            android:padding="7dp"
+            android:src="@drawable/ic_desktop" />
+
+        <!-- Zoom Controls (for HTML WebView) -->
+        <LinearLayout
+            android:id="@+id/llZoomControls"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:layout_marginEnd="6dp"
+            android:background="@drawable/bg_chat_action_btn"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="4dp">
+
+            <ImageView
+                android:id="@+id/btnZoomOut"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:clickable="true"
+                android:contentDescription="Zoom Out"
+                android:focusable="true"
+                android:padding="4dp"
+                android:src="@drawable/ic_zoom_out" />
+
+            <TextView
+                android:id="@+id/tvZoomPercent"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="4dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:text="100%"
+                android:textColor="#94A3B8"
+                android:textSize="11sp" />
+
+            <ImageView
+                android:id="@+id/btnZoomIn"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:clickable="true"
+                android:contentDescription="Zoom In"
+                android:focusable="true"
+                android:padding="4dp"
+                android:src="@drawable/ic_zoom_in" />
+        </LinearLayout>
+
+        <!-- Download Button -->
+        <ImageView
+            android:id="@+id/btnPreviewDownload"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginEnd="6dp"
+            android:background="@drawable/bg_chat_action_btn"
+            android:clickable="true"
+            android:contentDescription="Unduh"
+            android:focusable="true"
+            android:padding="7dp"
+            android:src="@drawable/ic_download" />
+
+        <!-- Save Button -->
+        <ImageView
+            android:id="@+id/btnPreviewSave"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginEnd="6dp"
+            android:background="@drawable/bg_chat_action_btn"
+            android:clickable="true"
+            android:contentDescription="Simpan"
+            android:focusable="true"
+            android:padding="7dp"
+            android:src="@drawable/ic_save" />
+
+        <!-- Close Button -->
+        <ImageView
+            android:id="@+id/btnPreviewClose"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="@drawable/bg_chat_action_btn"
+            android:clickable="true"
+            android:contentDescription="Tutup"
+            android:focusable="true"
+            android:padding="7dp"
+            android:src="@drawable/ic_close" />
+    </LinearLayout>
+
+    <!-- Progress Indicator -->
+    <ProgressBar
+        android:id="@+id/pbPreviewLoading"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="3dp"
+        android:indeterminate="true"
+        android:visibility="gone" />
+
+    <!-- Content Area -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <!-- Live Web Render Mode (WebView) -->
+        <WebView
+            android:id="@+id/wvPreview"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#0F172A" />
+
+        <!-- Source Code Mode -->
+        <ScrollView
+            android:id="@+id/svSourceCode"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#090D16"
+            android:padding="12dp"
+            android:visibility="gone">
+
+            <HorizontalScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <TextView
+                    android:id="@+id/tvSourceCode"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="monospace"
+                    android:lineSpacingExtra="3dp"
+                    android:textColor="#E2E8F0"
+                    android:textIsSelectable="true"
+                    android:textSize="12sp" />
+            </HorizontalScrollView>
+        </ScrollView>
+
+        <!-- Empty / Error Placeholder -->
+        <TextView
+            android:id="@+id/tvPreviewError"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="Memuat pratinjau berkas..."
+            android:textColor="#94A3B8"
+            android:textSize="14sp"
+            android:visibility="gone" />
+    </FrameLayout>
+
+</LinearLayout>

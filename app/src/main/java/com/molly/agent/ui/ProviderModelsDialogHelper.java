@@ -1,6 +1,6 @@
 package com.molly.agent.ui;
 
-import android.app.AlertDialog;
+import android.app.Dialog;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
@@ -9,6 +9,7 @@ import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
@@ -86,10 +87,10 @@ public class ProviderModelsDialogHelper {
         final String[] currentFilterType = new String[]{"all"};
         final String[] currentSearchQuery = new String[]{""};
 
-        AlertDialog dialog = new AlertDialog.Builder(context)
-                .setView(view)
-                .setCancelable(true)
-                .create();
+        Dialog dialog = new Dialog(context);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        dialog.setContentView(view);
+        dialog.setCancelable(true);
 
         if (dialog.getWindow() != null) {
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
@@ -378,10 +379,10 @@ public class ProviderModelsDialogHelper {
         TextView btnCancel = view.findViewById(R.id.btnCancelManualModel);
         TextView btnAdd = view.findViewById(R.id.btnAddManualModelConfirm);
 
-        AlertDialog dialog = new AlertDialog.Builder(context)
-                .setView(view)
-                .setCancelable(true)
-                .create();
+        Dialog dialog = new Dialog(context);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        dialog.setContentView(view);
+        dialog.setCancelable(true);
 
         if (dialog.getWindow() != null) {
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));

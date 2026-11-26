@@ -20,20 +20,31 @@
         android:paddingBottom="14dp">
 
         <ImageView
-            android:layout_width="26dp"
-            android:layout_height="26dp"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
             android:contentDescription="Molly"
             android:src="@drawable/ic_molly_logo" />
 
         <TextView
+            android:id="@+id/tvDrawerHeaderRecent"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="10dp"
             android:layout_weight="1"
-            android:text="Riwayat Percakapan"
+            android:text="Recent ⌵"
             android:textColor="@color/text_white"
-            android:textSize="17sp"
+            android:textSize="16sp"
             android:textStyle="bold" />
+
+        <ImageView
+            android:id="@+id/btnRefreshSessions"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="?selectableItemBackgroundBorderless"
+            android:contentDescription="Perbarui Riwayat"
+            android:padding="6dp"
+            android:src="@drawable/ic_refresh"
+            app:tint="@color/text_muted" />
     </LinearLayout>
 
     <!-- Tombol + Sesi Baru (New Session) -->
@@ -329,6 +340,43 @@
             android:layout_height="wrap_content"
             android:text="Cek ❯"
             android:textColor="@color/primary_gold"
+            android:textSize="11sp" />
+    </LinearLayout>
+
+    <!-- Menu Catatan Rilis & Changelog Realtime -->
+    <LinearLayout
+        android:id="@+id/btnDrawerChangelog"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="12dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="📜"
+            android:textSize="14sp" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:text="Catatan Rilis (Changelog)"
+            android:textColor="@color/text_white"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/tvDrawerChangelogBadge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="v1.2.4 ❯"
+            android:textColor="#06B6D4"
             android:textSize="11sp" />
     </LinearLayout>
 

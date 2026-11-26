@@ -35,8 +35,13 @@ public class SessionHistoryManager {
                 filtered.add(item);
             }
         }
-        // Urutkan dari yang terbaru (updatedAt descending)
-        Collections.sort(filtered, (a, b) -> Long.compare(b.getUpdatedAt(), a.getUpdatedAt()));
+        // Urutkan: Pinned session paling atas, lalu dari yang terbaru (updatedAt descending)
+        Collections.sort(filtered, (a, b) -> {
+            if (a.isPinned() != b.isPinned()) {
+                return a.isPinned() ? -1 : 1;
+            }
+            return Long.compare(b.getUpdatedAt(), a.getUpdatedAt());
+        });
         return filtered;
     }
 
@@ -73,6 +78,42 @@ public class SessionHistoryManager {
             all.add(0, newItem);
         }
 
+        saveAll(all);
+    }
+
+    public synchronized void renameSession(String sessionId, String newTitle) {
+        if (sessionId == null || sessionId.trim().isEmpty() || newTitle == null || newTitle.trim().isEmpty()) return;
+
+        String json = prefs.getString(KEY_SESSIONS, "[]");
+        Type type = new TypeToken<List<ChatSessionItem>>() {}.getType();
+        List<ChatSessionItem> all = gson.fromJson(json, type);
+        if (all == null) return;
+
+        for (ChatSessionItem item : all) {
+            if (item.getId().equals(sessionId)) {
+                item.setTitle(newTitle.trim());
+                item.setUpdatedAt(System.currentTimeMillis());
+                break;
+            }
+        }
+        saveAll(all);
+    }
+
+    public synchronized void setPinned(String sessionId, boolean isPinned) {
+        if (sessionId == null || sessionId.trim().isEmpty()) return;
+
+        String json = prefs.getString(KEY_SESSIONS, "[]");
+        Type type = new TypeToken<List<ChatSessionItem>>() {}.getType();
+        List<ChatSessionItem> all = gson.fromJson(json, type);
+        if (all == null) return;
+
+        for (ChatSessionItem item : all) {
+            if (item.getId().equals(sessionId)) {
+                item.setPinned(isPinned);
+                item.setUpdatedAt(System.currentTimeMillis());
+                break;
+            }
+        }
         saveAll(all);
     }
 
@@ -123,6 +164,7 @@ public class SessionHistoryManager {
                     // Update metadata
                     if (s.getTitle() != null && !s.getTitle().isEmpty()) l.setTitle(s.getTitle());
                     l.setArchived(s.isArchived());
+                    l.setPinned(s.isPinned());
                     break;
                 }
             }

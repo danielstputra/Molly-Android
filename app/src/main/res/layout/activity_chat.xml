@@ -105,6 +105,19 @@
                     android:tint="#38BDF8" />
             </LinearLayout>
 
+            <!-- Tombol Dokumen / Ruang Kerja (Personal Space & Files) -->
+            <ImageView
+                android:id="@+id/btnDocuments"
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:layout_marginEnd="6dp"
+                android:background="?selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:contentDescription="Dokumen &amp; Ruang Kerja"
+                android:focusable="true"
+                android:padding="7dp"
+                android:src="@drawable/ic_folder" />
+
             <!-- Tombol Clear Chat / Bersihkan Chat -->
             <ImageView
                 android:id="@+id/btnClearChat"
@@ -136,15 +149,211 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- Chat Messages List -->
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rvMessages"
+        <!-- Messages Area with Floating Overlays (Scroll to Bottom & Section Navigator) -->
+        <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="1"
-            android:clipToPadding="false"
-            android:paddingHorizontal="12dp"
-            android:paddingVertical="8dp" />
+            android:layout_weight="1">
+
+            <!-- Swipe Down to Refresh Chat -->
+            <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+                android:id="@+id/swipeRefreshChat"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+                <!-- Chat Messages List -->
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/rvMessages"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:clipToPadding="false"
+                    android:paddingHorizontal="12dp"
+                    android:paddingVertical="8dp" />
+            </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+
+            <!-- Segment / Section Navigator Scroller Container (Left Rail + Floating Preview Card) -->
+            <FrameLayout
+                android:id="@+id/flTimelineNavigatorContainer"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clickable="false"
+                android:focusable="false"
+                android:clipChildren="false"
+                android:clipToPadding="false">
+
+                <!-- Vertical Scrubber / Rail (Left edge) -->
+                <LinearLayout
+                    android:id="@+id/llSegmentNavigator"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_vertical|start"
+                    android:layout_marginStart="6dp"
+                    android:background="@drawable/bg_timeline_rail"
+                    android:elevation="8dp"
+                    android:gravity="center_horizontal"
+                    android:orientation="vertical"
+                    android:paddingHorizontal="4dp"
+                    android:paddingVertical="6dp"
+                    android:visibility="gone">
+
+                    <!-- Caret / Arrow Up (^) -->
+                    <TextView
+                        android:id="@+id/btnSegmentPrev"
+                        android:layout_width="22dp"
+                        android:layout_height="22dp"
+                        android:gravity="center"
+                        android:text="^"
+                        android:textColor="#94A3B8"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:clickable="true"
+                        android:contentDescription="Bagian Sebelumnya"
+                        android:focusable="true"
+                        android:background="?attr/selectableItemBackgroundBorderless" />
+
+                    <!-- Top subtle track line / dash -->
+                    <View
+                        android:id="@+id/lineSegmentTop"
+                        android:layout_width="1.5dp"
+                        android:layout_height="10dp"
+                        android:layout_marginVertical="2dp"
+                        android:background="#334155" />
+
+                    <!-- Dynamic Dots Container inside Max-Height ScrollView -->
+                    <ScrollView
+                        android:id="@+id/svTimelineRail"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fadeScrollbars="true"
+                        android:overScrollMode="never"
+                        android:scrollbars="none">
+
+                        <LinearLayout
+                            android:id="@+id/llSegmentNodes"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_horizontal"
+                            android:orientation="vertical" />
+                    </ScrollView>
+
+                    <!-- Bottom subtle track line / dash -->
+                    <View
+                        android:id="@+id/lineSegmentBottom"
+                        android:layout_width="1.5dp"
+                        android:layout_height="10dp"
+                        android:layout_marginVertical="2dp"
+                        android:background="#334155" />
+
+                    <!-- Caret / Arrow Down (v) -->
+                    <TextView
+                        android:id="@+id/btnSegmentNext"
+                        android:layout_width="22dp"
+                        android:layout_height="22dp"
+                        android:gravity="center"
+                        android:text="v"
+                        android:textColor="#94A3B8"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:clickable="true"
+                        android:contentDescription="Bagian Selanjutnya"
+                        android:focusable="true"
+                        android:background="?attr/selectableItemBackgroundBorderless" />
+                </LinearLayout>
+
+                <!-- Floating Preview Card (Matches the screenshot 100%) -->
+                <LinearLayout
+                    android:id="@+id/cardSegmentPreview"
+                    android:layout_width="260dp"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="top|start"
+                    android:layout_marginStart="36dp"
+                    android:layout_marginTop="100dp"
+                    android:background="@drawable/bg_timeline_preview_card"
+                    android:elevation="14dp"
+                    android:orientation="vertical"
+                    android:padding="13dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:visibility="gone">
+
+                    <!-- Prompt Title (Bold, White, maxLines=2) -->
+                    <TextView
+                        android:id="@+id/tvPreviewTitle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:maxLines="2"
+                        android:textColor="#F8FAFC"
+                        android:textSize="13.5sp"
+                        android:textStyle="bold" />
+
+                    <!-- Response Snippet (Muted, maxLines=3) -->
+                    <TextView
+                        android:id="@+id/tvPreviewSnippet"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="5dp"
+                        android:ellipsize="end"
+                        android:lineSpacingMultiplier="1.15"
+                        android:maxLines="3"
+                        android:textColor="#94A3B8"
+                        android:textSize="11.5sp" />
+
+                    <!-- Bottom Metadata Bar: "247 of 251" and "9:58 AM" -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="9dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/tvPreviewCounter"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textColor="#64748B"
+                            android:textSize="10.5sp" />
+
+                        <View
+                            android:layout_width="0dp"
+                            android:layout_height="1dp"
+                            android:layout_weight="1" />
+
+                        <TextView
+                            android:id="@+id/tvPreviewTime"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textColor="#64748B"
+                            android:textSize="10.5sp" />
+                    </LinearLayout>
+                </LinearLayout>
+            </FrameLayout>
+
+            <!-- Floating Scroll-to-Bottom Button -->
+            <FrameLayout
+                android:id="@+id/btnScrollBottom"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_gravity="bottom|end"
+                android:layout_marginEnd="16dp"
+                android:layout_marginBottom="12dp"
+                android:background="@drawable/bg_scroll_bottom_fab"
+                android:clickable="true"
+                android:contentDescription="Scroll ke Bawah"
+                android:elevation="6dp"
+                android:focusable="true"
+                android:visibility="gone">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:layout_gravity="center"
+                    android:contentDescription="Panah Bawah"
+                    android:src="@drawable/ic_chevron_down"
+                    android:tint="#38BDF8" />
+            </FrameLayout>
+
+        </FrameLayout>
 
         <!-- Agent Thinking Indicator -->
         <LinearLayout
@@ -222,6 +431,24 @@
             android:paddingHorizontal="12dp"
             android:paddingTop="8dp"
             android:paddingBottom="10dp">
+
+            <!-- Attachment Staging Preview Bar (Horizontal Scroll) -->
+            <HorizontalScrollView
+                android:id="@+id/hsvAttachmentStaging"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:overScrollMode="never"
+                android:scrollbars="none"
+                android:visibility="gone">
+
+                <LinearLayout
+                    android:id="@+id/llAttachmentStagingContainer"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal" />
+            </HorizontalScrollView>
 
             <!-- Top Row: Add Button (+) + EditText -->
             <LinearLayout

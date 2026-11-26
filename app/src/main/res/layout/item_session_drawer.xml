@@ -50,6 +50,15 @@
     </LinearLayout>
 
     <ImageView
+        android:id="@+id/ivPinned"
+        android:layout_width="16dp"
+        android:layout_height="16dp"
+        android:layout_marginEnd="6dp"
+        android:contentDescription="Disematkan"
+        android:src="@drawable/ic_pin"
+        android:visibility="gone" />
+
+    <ImageView
         android:id="@+id/btnSessionOptions"
         android:layout_width="28dp"
         android:layout_height="28dp"

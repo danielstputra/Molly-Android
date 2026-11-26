@@ -1,7 +1,6 @@
 package com.molly.agent.security;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
@@ -207,11 +206,11 @@ public class AppSecurityGuard {
         if (activity.isFinishing() || activity.isDestroyed()) return;
 
         activity.runOnUiThread(() -> {
-            new AlertDialog.Builder(activity)
+            new com.molly.agent.ui.MollyDialog.Builder(activity)
                     .setTitle("🛡️ Perlindungan Keamanan Molly")
                     .setMessage(reason + "\n\nAplikasi ditutup secara aman untuk mencegah manipulasi atau kebocoran data.")
                     .setCancelable(false)
-                    .setPositiveButton("Keluar", (dialog, which) -> {
+                    .setDestructiveButton("Keluar", (dialog, which) -> {
                         activity.finishAffinity();
                         Process.killProcess(Process.myPid());
                         System.exit(0);

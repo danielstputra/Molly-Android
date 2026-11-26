@@ -26,17 +26,37 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         void onReject(ChatDisplayItem item);
     }
 
+    public interface OnArtifactActionListener {
+        void onPreview(com.molly.agent.model.ArtifactItem item);
+        void onDownload(com.molly.agent.model.ArtifactItem item);
+        void onSave(com.molly.agent.model.ArtifactItem item);
+    }
+
     private final List<ChatDisplayItem> items = new ArrayList<>();
     private OnToolApprovalListener approvalListener;
+    private ChatWidgetViewHelper.OnWidgetActionListener widgetActionListener;
+    private OnArtifactActionListener artifactActionListener;
 
     public void setApprovalListener(OnToolApprovalListener listener) {
         this.approvalListener = listener;
+    }
+
+    public void setWidgetActionListener(ChatWidgetViewHelper.OnWidgetActionListener listener) {
+        this.widgetActionListener = listener;
+    }
+
+    public void setOnArtifactActionListener(OnArtifactActionListener listener) {
+        this.artifactActionListener = listener;
     }
 
     public void setItems(List<ChatDisplayItem> newItems) {
         this.items.clear();
         this.items.addAll(newItems);
         notifyDataSetChanged();
+    }
+
+    public List<ChatDisplayItem> getItems() {
+        return items;
     }
 
     public void addItem(ChatDisplayItem item) {
@@ -73,7 +93,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         ChatDisplayItem item = items.get(position);
 
         if (holder instanceof MessageViewHolder) {
-            ((MessageViewHolder) holder).bind(item);
+            ((MessageViewHolder) holder).bind(item, widgetActionListener, artifactActionListener);
         } else if (holder instanceof ToolGroupViewHolder) {
             ((ToolGroupViewHolder) holder).bind(item, approvalListener);
         } else if (holder instanceof ToolCallViewHolder) {
@@ -100,10 +120,14 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         LinearLayout llUserContainer;
         TextView tvUserMessage;
         TextView tvUserTimestamp;
+        LinearLayout llUserAttachments;
+        LinearLayout llUserWidgets;
 
         LinearLayout llAgentContainer;
         TextView tvAgentMessage;
         TextView tvAgentTimestamp;
+        LinearLayout llAgentWidgets;
+        LinearLayout llAgentArtifacts;
 
         ImageView btnThumbUp;
         ImageView btnThumbDown;
@@ -114,10 +138,14 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             llUserContainer = itemView.findViewById(R.id.llUserContainer);
             tvUserMessage = itemView.findViewById(R.id.tvUserMessage);
             tvUserTimestamp = itemView.findViewById(R.id.tvUserTimestamp);
+            llUserAttachments = itemView.findViewById(R.id.llUserAttachments);
+            llUserWidgets = itemView.findViewById(R.id.llUserWidgets);
 
             llAgentContainer = itemView.findViewById(R.id.llAgentContainer);
             tvAgentMessage = itemView.findViewById(R.id.tvAgentMessage);
             tvAgentTimestamp = itemView.findViewById(R.id.tvAgentTimestamp);
+            llAgentWidgets = itemView.findViewById(R.id.llAgentWidgets);
+            llAgentArtifacts = itemView.findViewById(R.id.llAgentArtifacts);
 
             if (tvAgentMessage != null) {
                 tvAgentMessage.setMovementMethod(android.text.method.LinkMovementMethod.getInstance());
@@ -133,19 +161,112 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             btnCopyMessage = itemView.findViewById(R.id.btnCopyMessage);
         }
 
-        public void bind(ChatDisplayItem item) {
+        public void bind(ChatDisplayItem item, ChatWidgetViewHelper.OnWidgetActionListener widgetActionListener, OnArtifactActionListener artifactActionListener) {
             Context ctx = itemView.getContext();
             boolean isUser = (item.getItemType() == ChatDisplayItem.TYPE_USER);
 
             if (isUser) {
                 llUserContainer.setVisibility(View.VISIBLE);
                 llAgentContainer.setVisibility(View.GONE);
-                tvUserMessage.setText(MarkdownHelper.render(ctx, item.getText()));
+                ChatWidgetViewHelper.render(ctx, item.getText(), tvUserMessage, llUserWidgets, null);
                 tvUserTimestamp.setText(item.getTimestamp());
+
+                if (llUserAttachments != null) {
+                    llUserAttachments.removeAllViews();
+                    List<com.molly.agent.model.AttachmentItem> atts = item.getAttachments();
+                    if (atts != null && !atts.isEmpty()) {
+                        llUserAttachments.setVisibility(View.VISIBLE);
+                        for (com.molly.agent.model.AttachmentItem att : atts) {
+                            View chip = LayoutInflater.from(ctx).inflate(R.layout.item_attachment_staging_chip, llUserAttachments, false);
+                            TextView tvEmoji = chip.findViewById(R.id.tvAttachmentEmoji);
+                            ImageView ivThumb = chip.findViewById(R.id.ivAttachmentThumb);
+                            TextView tvName = chip.findViewById(R.id.tvAttachmentName);
+                            TextView tvStatus = chip.findViewById(R.id.tvAttachmentStatus);
+                            View btnRemove = chip.findViewById(R.id.btnRemoveAttachment);
+                            if (btnRemove != null) btnRemove.setVisibility(View.GONE);
+
+                            tvEmoji.setText(att.getCategoryEmoji());
+                            tvName.setText(att.getFileName());
+                            tvStatus.setText(att.getFormattedSize());
+
+                            if ("image".equalsIgnoreCase(att.getCategory()) && att.getImageUrl() != null && att.getImageUrl().startsWith("data:image")) {
+                                try {
+                                    String b64 = att.getImageUrl().substring(att.getImageUrl().indexOf(",") + 1);
+                                    byte[] dec = android.util.Base64.decode(b64, android.util.Base64.DEFAULT);
+                                    android.graphics.Bitmap bmp = android.graphics.BitmapFactory.decodeByteArray(dec, 0, dec.length);
+                                    if (bmp != null) {
+                                        ivThumb.setImageBitmap(bmp);
+                                        ivThumb.setVisibility(View.VISIBLE);
+                                        tvEmoji.setVisibility(View.GONE);
+                                    }
+                                } catch (Exception ignored) {}
+                            }
+                            llUserAttachments.addView(chip);
+                        }
+                    } else {
+                        llUserAttachments.setVisibility(View.GONE);
+                    }
+                }
             } else {
                 llUserContainer.setVisibility(View.GONE);
                 llAgentContainer.setVisibility(View.VISIBLE);
-                tvAgentMessage.setText(MarkdownHelper.render(ctx, item.getText()));
+                
+                // Render teks/rich widgets (Gambar 1, 2, 3)
+                ChatWidgetViewHelper.render(ctx, item.getText(), tvAgentMessage, llAgentWidgets, widgetActionListener);
+
+                // Render Kartu Artefak (Present Artifacts: HTML, dokumen, deliverables)
+                if (llAgentArtifacts != null) {
+                    llAgentArtifacts.removeAllViews();
+                    if (item.hasArtifacts()) {
+                        llAgentArtifacts.setVisibility(View.VISIBLE);
+                        for (com.molly.agent.model.ArtifactItem art : item.getArtifacts()) {
+                            View card = LayoutInflater.from(ctx).inflate(R.layout.item_artifact_card, llAgentArtifacts, false);
+                            TextView tvName = card.findViewById(R.id.tvArtifactName);
+                            TextView tvMeta = card.findViewById(R.id.tvArtifactMeta);
+                            ImageView ivIcon = card.findViewById(R.id.ivArtifactIcon);
+                            ImageView btnDownload = card.findViewById(R.id.btnDownloadArtifact);
+                            ImageView btnSave = card.findViewById(R.id.btnSaveArtifact);
+                            View llRoot = card.findViewById(R.id.llArtifactCardRoot);
+
+                            tvName.setText(art.getName());
+                            tvMeta.setText(art.getMetaLabel());
+
+                            if (ivIcon != null) {
+                                if (art.isHtml()) {
+                                    ivIcon.setImageResource(R.drawable.ic_globe);
+                                } else {
+                                    ivIcon.setImageResource(R.drawable.ic_artifact_file);
+                                }
+                                ivIcon.setColorFilter(android.graphics.Color.parseColor("#10B981"));
+                            }
+
+                            if (llRoot != null) {
+                                llRoot.setOnClickListener(v -> {
+                                    if (artifactActionListener != null) {
+                                        artifactActionListener.onPreview(art);
+                                    }
+                                });
+                            }
+                            if (btnDownload != null) {
+                                btnDownload.setOnClickListener(v -> {
+                                    if (artifactActionListener != null) {
+                                        artifactActionListener.onDownload(art);
+                                    }
+                                });
+                            }
+                            if (btnSave != null) {
+                                btnSave.setOnClickListener(v -> {
+                                    if (artifactActionListener != null) {
+                                        artifactActionListener.onSave(art);
+                                    }
+                                });
+                            }
+                            llAgentArtifacts.addView(card);
+                        }
+                    } else {
+                        llAgentArtifacts.setVisibility(View.GONE);
+                    }
+                }
 
                 String time = item.getTimestamp() != null && !item.getTimestamp().isEmpty() ? item.getTimestamp() : "12:00";
                 tvAgentTimestamp.setText(time);

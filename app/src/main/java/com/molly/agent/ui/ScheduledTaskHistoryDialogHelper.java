@@ -1,6 +1,6 @@
 package com.molly.agent.ui;
 
-import android.app.AlertDialog;
+import android.app.Dialog;
 import android.content.Context;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
@@ -8,6 +8,7 @@ import android.graphics.drawable.ColorDrawable;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -47,10 +48,10 @@ public class ScheduledTaskHistoryDialogHelper {
         rvRuns.setLayoutManager(new LinearLayoutManager(context));
         rvRuns.setAdapter(adapter);
 
-        AlertDialog dialog = new AlertDialog.Builder(context)
-                .setView(view)
-                .setCancelable(true)
-                .create();
+        Dialog dialog = new Dialog(context);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        dialog.setContentView(view);
+        dialog.setCancelable(true);
 
         if (dialog.getWindow() != null) {
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
